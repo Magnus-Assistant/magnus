@@ -1474,6 +1474,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "vosk",
 ]
 
 [[package]]
@@ -3161,6 +3162,23 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "vosk"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e24b8dd868df76aea46929b460640896b170d64eefffcd773084fdd4fcd67ec"
+dependencies = [
+ "serde",
+ "serde_json",
+ "vosk-sys",
+]
+
+[[package]]
+name = "vosk-sys"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4119af93ca109482d71c6c01511a88c93131fcfdcf4ab4f5f1d8e4e4f5099d29"
 
 [[package]]
 name = "vswhom"
