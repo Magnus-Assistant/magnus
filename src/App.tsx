@@ -11,10 +11,15 @@ function App() {
     await invoke('start_model');
   }
 
+  async function startStream() {
+    await invoke('start_test_stream');
+  }
+
   return (
     <div className="container">
       <button onClick={consolePrint}>Print To Console</button>
       <button onClick={startModel}>Start Vosk Model</button>
+      <button onClick={startStream}>Start Test Audio Stream</button>
     </div>
   );
 }
