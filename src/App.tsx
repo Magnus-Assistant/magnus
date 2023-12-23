@@ -7,14 +7,15 @@ function App() {
     await invoke('my_custom_command');
   }
 
-  async function startModel() {
-    await invoke('start_model');
+  async function startListener() {
+    let result = await invoke('start_listener');
+    console.log(typeof result)
   }
 
   return (
     <div className="container">
       <button onClick={consolePrint}>Print To Console</button>
-      <button onClick={startModel}>Start Vosk Model</button>
+      <button onClick={startListener}>Start Listener</button>
     </div>
   );
 }
