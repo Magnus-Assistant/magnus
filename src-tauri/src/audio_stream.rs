@@ -1,49 +1,42 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Data, InputCallbackInfo, Sample, SampleRate, Stream, StreamConfig};
+use cpal::{Device, Sample, SupportedStreamConfig};
 
-//use dasp_interpolate::linear::Linear;
+use dasp_interpolate::linear::Linear;
 use dasp_signal::{self as signal, Signal};
-use signal::interpolate;
-use std::error;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
-use std::thread::{self};
-use std::time::Duration;
-use color_eyre::eyre::{eyre, Result};
 
+///struct containing audio clip information
 #[derive(Clone)]
-pub struct AudioClip {
+pub struct InputClip {
     samples: Vec<f32>,
     sample_rate: u32,
 }
 
-impl AudioClip {
-    pub fn resample(&self, sample_rate: u32) -> AudioClip {
-        if self.sample_rate == sample_rate {
-            // return a copy since its the same?
-            return self.clone();
-        }
+struct StreamData {
+    audio_device: Device,
+    config: SupportedStreamConfig,
+}
 
-        let mut sig = signal::from_iter(self.samples.iter().copied());
-        let a = sig.next();
-        let b = sig.next();
+impl InputClip {
+    ///resample the input data for reading via Vosk
+    pub fn resample(sample_rate: u32, clip: &InputClip) -> Vec<f32> {
+        let mut signal = signal::from_iter(clip.samples.iter().copied());
+        let a = signal.next();
+        let b = signal.next();
 
-        //let linear = Linear::new(a, b);
+        //transform the data using interpolation
+        let linear = Linear::new(a, b);
 
-        // AudioClip {
-        //     samples: sig
-        //     .from_hz_to_hz(linear, self.sample_rate as f64, sample_rate as f64)
-        //     .take(self.samples.len() * (sample_rate as usize) / (self.sample_rate as usize))
-        //     .collect(),
-        //     sample_rate: sample_rate,
-        // }
-        AudioClip {
-            samples: Vec::new(),
-            sample_rate: sample_rate,
-        }
+        //return the new Vector of Interpolated values
+        signal
+            .from_hz_to_hz(linear, clip.sample_rate as f64, sample_rate as f64)
+            .take(clip.samples.len() * (sample_rate as usize) / (clip.sample_rate as usize))
+            .collect()
     }
 
-    pub fn record(name: String) -> Result<Vec<f32>> {
+    //Builds the needed configuration for starting an input data stream
+    fn build_config() -> StreamData {
         // create the host and audio device
         let host = cpal::default_host();
         let audio_device = host
@@ -59,26 +52,46 @@ impl AudioClip {
             .expect("no supported config?!")
             .with_max_sample_rate();
 
-        let clip = AudioClip { samples: Vec::new(), sample_rate: supported_config.sample_rate().0};
+        //return a StreamData struct with all the needed info
+        StreamData {
+            audio_device: audio_device,
+            config: supported_config,
+        }
+    }
+
+    ///Creates and writes input audio information to a Vector and stores them in an InputClip
+    pub fn create_stream() -> Vec<i16> {
+        let stream_data = Self::build_config();
+
+        let clip = InputClip {
+            samples: Vec::new(),
+            sample_rate: stream_data.config.sample_rate().0,
+        };
+
+        println!(
+            "Using Sample Rate of: {}",
+            stream_data.config.sample_rate().0
+        );
+        println!(
+            "Using Sample Format of: {}",
+            stream_data.config.sample_format()
+        );
 
         let clip = Arc::new(Mutex::new(Some(clip)));
         let clip_2 = clip.clone();
 
         println!("We aught to be recordin...");
 
-        let err_fn = move |err| {
-            println!("Error on stream: {}", err);
-        };
+        let channels = stream_data.config.channels();
 
-        let channels = supported_config.channels();
+        type AudioClipHandle = Arc<Mutex<Option<InputClip>>>;
 
-        type ClipHandle = Arc<Mutex<Option<AudioClip>>>;
-
-        fn write_data<T: Sample>(input: &[f32], channels: u16, writer: &ClipHandle)
-        where T: cpal::Sample,
+        fn write_data<T: Sample>(input: &[f32], channels: u16, writer: &AudioClipHandle)
+        where
+            T: cpal::Sample,
         {
-            if let Ok(mut guard) = writer.try_lock() {
-                if let Some(clip) = guard.as_mut() {
+            if let Ok(mut m_guard) = writer.try_lock() {
+                if let Some(clip) = m_guard.as_mut() {
                     for frame in input.chunks(channels.into()) {
                         clip.samples.push(frame[0]);
                     }
@@ -86,126 +99,80 @@ impl AudioClip {
             }
         }
 
-        let stream = match supported_config.sample_format() {
-            cpal::SampleFormat::I16 => audio_device.build_input_stream(
-        &supported_config.into(),
-                move |data, _: &_| write_data::<f32>(data, channels, &clip_2),
-                err_fn,
-                None,
-            ).expect("Failed"),
-            cpal::SampleFormat::U16 => audio_device.build_input_stream(
-                &supported_config.into(),
-                move |data, _: &_| write_data::<i16>(data, channels, &clip_2),
-                err_fn,
-                None,
-            ).expect("Failed"),
-            cpal::SampleFormat::F32 => audio_device.build_input_stream(
-                &supported_config.into(),
-                move |data, _: &_| write_data::<u16>(data, channels, &clip_2),
-                err_fn,
-                None,
-            ).expect("Failed"),
+        /// Converts the F32 (floating point) values to the needed 16bit PCM type for processing
+        fn process_input_data(data: Vec<f32>) -> Vec<i16> {
+            let pcm_samples: Vec<i16> = data
+                .iter()
+                .map(|&sample| {
+                    // Scale and convert to 16-bit PCM
+                    (sample * i16::MAX as f32).clamp(-i16::MAX as f32, i16::MAX as f32) as i16
+                })
+                .collect();
 
-            (_) => todo!(),
+            // Process the PCM samples (you can do whatever you want with them)
+            // For example, print the first few samples
+            println!("{:?}", &pcm_samples[0..10]);
+            pcm_samples
+        }
+
+        let err_fn = move |err| {
+            println!("Error on stream: {}", err);
         };
 
-        stream.play()?;
-        
+        //create the actual output stream
+        let stream = match stream_data.config.sample_format() {
+            cpal::SampleFormat::I16 => stream_data
+                .audio_device
+                .build_input_stream(
+                    &stream_data.config.clone().into(),
+                    move |data, _: &_| write_data::<f32>(data, channels, &clip_2),
+                    err_fn,
+                    None,
+                )
+                .expect("Failed to start Sample format I16"),
+            cpal::SampleFormat::U16 => stream_data
+                .audio_device
+                .build_input_stream(
+                    &stream_data.config.clone().into(),
+                    move |data, _: &_| write_data::<i16>(data, channels, &clip_2),
+                    err_fn,
+                    None,
+                )
+                .expect("Failed to start Sample format U16"),
+            cpal::SampleFormat::F32 => stream_data
+                .audio_device
+                .build_input_stream(
+                    &stream_data.config.clone().into(),
+                    move |data, _: &_| write_data::<u16>(data, channels, &clip_2),
+                    err_fn,
+                    None,
+                )
+                .expect("Failed to start Sample format F32"),
+
+            _ => todo!(),
+        };
+
+        match stream.play() {
+            Ok(_) => println!("Play Executed Successfully"),
+            Err(p) => println!("Play failed: {}", p),
+        }
+
         let (tx, rx) = channel();
-        ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel."))?;
+        match ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel.")) {
+            Ok(_) => {}
+            Err(_) => panic!("Failed to kill the program! Exiting"),
+        }
 
         println!("Waiting for Ctrl-C...");
-        rx.recv()?;
+        rx.recv().expect("Failed to receive Kill");
         println!("Got it! Exiting...");
 
         drop(stream);
         let clip = clip.lock().unwrap().take().unwrap();
 
-        println!("Recorded {} samples", clip.samples.len());
-        Ok(clip.samples)
+        let new_samples = Self::resample(stream_data.config.sample_rate().0, &clip);
+        println!("Recorded {} samples", clip.clone().samples.len());
+
+        process_input_data(new_samples)
     }
-
-    
-
 }
-
-// pub fn start_stream() {
-//     let stream_handle = thread::spawn(move || {
-//         // create the host and audio device
-//         let host = cpal::default_host();
-//         let audio_device = host
-//             .default_input_device()
-//             .expect("Failed to find audio device");
-
-//         //get a list of all supported configs
-//         let mut supported_configs_range = audio_device
-//             .supported_input_configs()
-//             .expect("error while querying configs");
-//         let supported_config = supported_configs_range
-//             .next()
-//             .expect("no supported config?!")
-//             .with_max_sample_rate();
-
-//         let mut buffer: Vec<Data> = Vec::new();
-
-//         let mut default_config: StreamConfig =
-//             StreamConfig::from(audio_device.default_input_config().unwrap());
-//         //default_config.sample_rate = SampleRate(48000);
-//         let stream_config: StreamConfig = StreamConfig::from(supported_config);
-
-//         println!(
-//             "SYSTEM CHOSEN: buffer: {:?} channel: {} sample: {:?}",
-//             stream_config.buffer_size, stream_config.channels, stream_config.sample_rate
-//         );
-//         println!(
-//             "DEFAULT: buffer: {:?} channel: {} sample: {:?}",
-//             default_config.buffer_size, default_config.channels, default_config.sample_rate
-//         );
-
-//         //create the actual output stream
-//         let stream: Result<Stream, cpal::BuildStreamError> = audio_device.build_input_stream_raw(
-//             &default_config,
-//             cpal::SampleFormat::F32,
-//             move |data, callback| {
-//                 //write_data::<f32>(data, callback)
-//                 process_data(data, callback);
-//             },
-//             move |err| println!("{}", err),
-//             None,
-//         );
-
-//         fn write_data<T: Sample>(data: &Data, _: &InputCallbackInfo) {
-//             //let mut data: Vec<f32> = vec![0.0; data.len()];
-//             println!("Input callback triggered!");
-//             println!("Data length: {}", data.len());
-//         }
-
-//         fn process_data(data: &Data, _: &InputCallbackInfo) {
-//             panic!("JUST DIE");
-//             println!("Recieved input data: {:?}", data);
-//         }
-
-//         match stream {
-//             Ok(s) => {
-//                 let success = s.play().expect("STREAM FAILED TO START");
-//                 //     match success {
-//                 //         Ok(_su) => {
-//                 //             println!("Play was successful")
-//                 //         }
-//                 //         Err(su) => {
-//                 //             println!("{}", su)
-//                 //         }
-//                 //     }
-//                 // }
-//                 // Err(s) => {
-//                 //     println!("{}", s);
-//             }
-//             Err(s) => println!("Failed to initialize stream: {}", s),
-//         }
-
-//         thread::sleep(Duration::from_secs(20));
-//         println!("Exiting thread");
-//     });
-//     //stream_handle.join().unwrap();
-//     println!("Exited function... strean dead");
-// }
