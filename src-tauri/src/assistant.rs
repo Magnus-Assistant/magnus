@@ -64,9 +64,6 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
         if run["status"] == "completed" {
             return Ok(()); 
         }
-        else if run["status"] == "in_progress" {
-            print!(".")
-        }
         else if run["status"] == "requires_action" && run["required_action"]["type"] == "submit_tool_outputs" {
             let mut tool_outputs: Vec<serde_json::Value> = vec![];
 
@@ -74,43 +71,47 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                 for tool_call in tool_calls {
                     if let Some(tool_call_obj) = tool_call.as_object() {
 
-                        println!("\ntool_call:\n{:#?}", tool_call);
+                        // println!("\ntool_call:\n{:#?}", tool_call);
 
                         let function_name = &tool_call_obj["function"]["name"].to_string().trim_matches('"').to_string();
 
                         let tool_output: String;
+
+                        let arguments = &tool_call_obj["function"]["arguments"].as_str().unwrap();
+
+                        let arguments_object = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(arguments);
                         
-                        if let Some(arguments) = tool_call_obj["function"].get("arguments") {
-                            if arguments.as_object() == None {
-                                tool_output = execute(&function_name.as_str(), None).await?;
-                            }
-                            else {
-                                tool_output = execute(&function_name.as_str(), Some(arguments.clone())).await?;
-                            }
-
-                            println!("received output: {}\n for tool call: {}", tool_output, tool_call["id"]);
-
-                            tool_outputs.push(serde_json::json!({
-                                "tool_call_id": tool_call["id"],
-                                "output": tool_output.as_str()
-                            }));
+                        match arguments_object {
+                            Ok(args) => {
+                                if args.is_empty() {
+                                    tool_output = execute(&function_name, None).await?;
+                                }
+                                else {
+                                    tool_output = execute(&function_name, Some(args)).await?;
+                                }
+                            },
+                            Err(_) => tool_output = execute(&function_name, None).await?
                         }
+
+                        // println!("received output: {}\n for tool call: {}", tool_output, tool_call["id"]);
+
+                        tool_outputs.push(serde_json::json!({
+                            "tool_call_id": tool_call["id"],
+                            "output": tool_output
+                        }));
                     }
                 }
-                let _ = submit_tool_outputs(run_id, thread_id, tool_outputs).await;
-                break
+                let _ = submit_tool_outputs(run_id, thread_id.clone(), serde_json::json!({"tool_outputs": tool_outputs})).await;
             }
         }
         else {
             thread::sleep(Duration::from_secs(1));
         }
     }
-    Ok(())
 }
 
-pub async fn submit_tool_outputs(run_id: &str, thread_id: String, tool_outputs: Vec<serde_json::Value>) -> Result<(), Error> {
-    println!("{:#?}", tool_outputs);
-    let response = get_reqwest_client()
+pub async fn submit_tool_outputs(run_id: &str, thread_id: String, tool_outputs: serde_json::Value) -> Result<(), Error> {
+    let _ = get_reqwest_client()
         .post(format!("https://api.openai.com/v1/threads/{}/runs/{}/submit_tool_outputs", thread_id, run_id))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
@@ -119,8 +120,21 @@ pub async fn submit_tool_outputs(run_id: &str, thread_id: String, tool_outputs: 
         .send()
         .await;
 
-    println!("submit tool outputs response: {:#?}", response);
+    Ok(())
+}
 
+pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Error> {
+    let response = get_reqwest_client()
+        .get(format!("https://api.openai.com/v1/threads/{}/messages", thread_id))
+        .header("Authorization", format!("Bearer {}", get_open_ai_key()))
+        .header("OpenAI-Beta", "assistants=v1")
+        .send()
+        .await?;
+
+    let messages = response.json::<serde_json::Value>().await?;
+
+    println!("response: {}", format!("{}", messages["data"][0]["content"][0]["text"]["value"]));
+    
     Ok(())
 }
 
@@ -144,7 +158,7 @@ pub async fn print_messages(thread_id: String) -> Result<(), Error> {
     Ok(())
 }
 
-async fn execute(function_name: &str, arguments: Option<serde_json::Value>) -> Result<String, Error> {
+async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, serde_json::Value>>) -> Result<String, Error> {
     println!("wants to call: {}\nwith args: {:#?}", function_name, arguments);
     let result: String;
 
@@ -161,10 +175,9 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Value>) -> R
                     }
                 },
                 "get_local_weather" => {
-                    if let (Some(latitude), Some(longitude)) = (args.get("latitude").and_then(|v| v.as_str()), args.get("longitude").and_then(|v| v.as_str())) {
-                        tools::get_local_weather(latitude, longitude)
-                    }
-                                      
+                    if let (Some(latitude), Some(longitude)) = (args.get("latitude"), args.get("longitude")) {
+                        tools::get_local_weather(latitude.as_str().unwrap(), longitude.as_str().unwrap())
+                    }                   
                     else {
                         panic!("Failed to find latitude or longitude in arguments object.")
                     }

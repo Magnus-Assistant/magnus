@@ -1,6 +1,6 @@
 pub fn get_location_weather(location: &str) -> String {
     println!("getting weather of {}!", location);
-    format!("Its currently 40 F in {}", location)
+    format!("Its currently 40 F in {}, with a 45% chance of rain after 8pm.", location)
 }
 
 pub fn get_local_weather(latitude: &str, longitude: &str) -> String {

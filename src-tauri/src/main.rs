@@ -4,6 +4,7 @@
 mod assistant;
 mod tools;
 mod globals;
+
 use dotenv;
 
 #[tauri::command]
@@ -23,7 +24,7 @@ async fn create_thread() -> Result<(), String> {
   match result {
     Ok(thread_id) => {
       globals::set_thread_id(thread_id.clone().trim_matches('\"').to_string());
-      println!("thread: {}", globals::get_thread_id());
+      println!("thread: {}\n---------------------------------------", globals::get_thread_id());
       Ok(())
     },
     Err(e) => {
@@ -46,13 +47,13 @@ async fn create_message(message: String) -> Result<(), String> {
   let run_id: String = assistant::create_run(globals::get_thread_id()).await.unwrap_or_else(|err| {
     panic!("Error occurred: {:?}", err);
   });
-  println!("run: {}", run_id);
+  // println!("run: {}", run_id);
 
   // run the thread and wait for it to finish
   let _ = assistant::run_and_wait(&run_id, globals::get_thread_id()).await;
 
   // lets see the response from the assistant
-  let _ = assistant::print_messages(globals::get_thread_id());
+  let _ = assistant::print_assistant_last_response(globals::get_thread_id()).await;
 
   Ok(())
 }
