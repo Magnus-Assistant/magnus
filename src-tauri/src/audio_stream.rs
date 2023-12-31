@@ -7,16 +7,18 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 
 ///struct containing audio clip information
+
 #[derive(Clone)]
 pub struct InputClip {
     samples: Vec<f32>,
     sample_rate: u32,
 }
 
-struct StreamData {
+pub struct StreamData {
     audio_device: Device,
-    config: SupportedStreamConfig,
+    pub config: SupportedStreamConfig,
 }
+
 
 impl InputClip {
     ///resample the input data for reading via Vosk
@@ -36,7 +38,7 @@ impl InputClip {
     }
 
     //Builds the needed configuration for starting an input data stream
-    fn build_config() -> StreamData {
+    pub fn build_config() -> StreamData {
         // create the host and audio device
         let host = cpal::default_host();
         let audio_device = host
@@ -60,14 +62,17 @@ impl InputClip {
     }
 
     ///Creates and writes input audio information to a Vector and stores them in an InputClip
-    pub fn create_stream() -> Vec<i16> {
-        let stream_data = Self::build_config();
+    pub async fn create_stream() -> Vec<i16> {
 
+        //grab stream config, number of channels and create the clip
+        let stream_data = Self::build_config();
+        let channels = stream_data.config.channels();
         let clip = InputClip {
             samples: Vec::new(),
             sample_rate: stream_data.config.sample_rate().0,
         };
 
+        //some helpful logging about the config thats being used
         println!(
             "Using Sample Rate of: {}",
             stream_data.config.sample_rate().0
@@ -77,15 +82,14 @@ impl InputClip {
             stream_data.config.sample_format()
         );
 
+        //create a clip Arc Mutex and a clone of clip
         let clip = Arc::new(Mutex::new(Some(clip)));
         let clip_2 = clip.clone();
 
-        println!("We aught to be recordin...");
 
-        let channels = stream_data.config.channels();
-
+        //create a type for our writer, and define how we write data to the input Array
+        //This array can get HUGE. 44100 items a second big. Would be better to use a buffer
         type AudioClipHandle = Arc<Mutex<Option<InputClip>>>;
-
         fn write_data<T: Sample>(input: &[f32], channels: u16, writer: &AudioClipHandle)
         where
             T: cpal::Sample,
@@ -109,17 +113,15 @@ impl InputClip {
                 })
                 .collect();
 
-            // Process the PCM samples (you can do whatever you want with them)
-            // For example, print the first few samples
-            println!("{:?}", &pcm_samples[0..10]);
             pcm_samples
         }
 
+        // Generic error callback function for when we are creating input streams
         let err_fn = move |err| {
             println!("Error on stream: {}", err);
         };
 
-        //create the actual output stream
+        //create the actual output stream based on what sample format we are using
         let stream = match stream_data.config.sample_format() {
             cpal::SampleFormat::I16 => stream_data
                 .audio_device
@@ -160,7 +162,7 @@ impl InputClip {
         let (tx, rx) = channel();
         match ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel.")) {
             Ok(_) => {}
-            Err(_) => panic!("Failed to kill the program! Exiting"),
+            Err(e) => println!("{}", e),
         }
 
         println!("Waiting for Ctrl-C...");

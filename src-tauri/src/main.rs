@@ -1,14 +1,12 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-
 use vosk::{ Model, Recognizer };
 
 use std::fs::File;
 use std::io::Read;
 use std::time::SystemTime;
 use audio_stream::InputClip;
-
 mod audio_stream;
 
 #[tauri::command]
@@ -19,6 +17,9 @@ async fn my_custom_command() {
 #[tauri::command]
 async fn start_model(data_stream: Vec<i16>) {
   println!("Starting Vosk model with live audio...");
+  //grab the stream data so we can dynamically read audio based on what the
+  //system assigns for the config
+  let stream_data = InputClip::build_config();
   let start = SystemTime::now();
 
   let test_audio_path: &str = "./test_audio/magnus.wav";
@@ -32,7 +33,7 @@ async fn start_model(data_stream: Vec<i16>) {
   let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
 
   let model = Model::new(model_path).unwrap();
-  let mut recognizer = Recognizer::new(&model, 44100.0).unwrap();
+  let mut recognizer = Recognizer::new(&model, stream_data.config.sample_rate().0 as f32).unwrap();
 
   recognizer.set_max_alternatives(10);
   recognizer.set_words(true);
@@ -61,12 +62,12 @@ async fn start_model(data_stream: Vec<i16>) {
 
 #[tauri::command]
 async fn start_test_stream(){
-  //This will block the main thread until its stopped. Seperate thread probably?
-  let clip = InputClip::create_stream();
-  start_model(clip).await
+
+  let stream_clip = InputClip::create_stream().await;
+  start_model(stream_clip).await;
 }
 
-  
+
 fn main() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![my_custom_command, start_model, start_test_stream])
