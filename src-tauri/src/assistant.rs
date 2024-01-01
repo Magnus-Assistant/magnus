@@ -176,7 +176,8 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, 
                 },
                 "get_local_weather" => {
                     if let (Some(latitude), Some(longitude)) = (args.get("latitude"), args.get("longitude")) {
-                        tools::get_local_weather(latitude.as_str().unwrap(), longitude.as_str().unwrap())
+                        println!("have coords: {}, {}", latitude, longitude);
+                        tools::get_local_weather(&latitude.to_string(), &longitude.to_string())
                     }                   
                     else {
                         panic!("Failed to find latitude or longitude in arguments object.")
