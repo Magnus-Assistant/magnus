@@ -154,11 +154,13 @@ impl InputClip {
             _ => todo!(),
         };
 
+        //Log how starting the input stream goes
         match stream.play() {
             Ok(_) => println!("Play Executed Successfully"),
             Err(p) => println!("Play failed: {}", p),
         }
 
+        //create a channel that lets us use CTRL-C to stop it 
         let (tx, rx) = channel();
         match ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel.")) {
             Ok(_) => {}
@@ -169,9 +171,11 @@ impl InputClip {
         rx.recv().expect("Failed to receive Kill");
         println!("Got it! Exiting...");
 
+        //get rid of the stream and create the clip
         drop(stream);
         let clip = clip.lock().unwrap().take().unwrap();
 
+        //resample the clip data to the correct format for the model
         let new_samples = Self::resample(stream_data.config.sample_rate().0, &clip);
         println!("Recorded {} samples", clip.clone().samples.len());
 
