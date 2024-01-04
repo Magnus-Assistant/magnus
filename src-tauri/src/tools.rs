@@ -1,10 +1,26 @@
-use crate::globals::{ get_reqwest_client, get_ip_api_key, get_weather_api_user_agent };
+use crate::globals::{ get_reqwest_client, get_ip_api_key, get_weather_api_user_agent, get_opencage_key };
 use serde_json::Value;
 use chrono::prelude::Local;
+use urlencoding::encode;
 
-pub fn get_location_coordinates(location: &str) -> String {
+pub async fn get_location_coordinates(location: &str) -> String {
     println!("getting {} coordinates!", location);
-    format!("lat: {}, lng: {}", 40.7128, 74.0060)
+    let coordinates_result = get_reqwest_client()
+        .get(format!("https://api.opencagedata.com/geocode/v1/json?key={}&q={}", get_opencage_key(), encode(location)))
+        .send()
+        .await;
+
+    match coordinates_result {
+        Ok(coordinates_response) => {
+            match coordinates_response.json::<Value>().await {
+                Ok(coordinates) => {
+                    return format!("lat: {}, lng: {}", coordinates["results"][0]["geometry"]["lat"], coordinates["results"][0]["geometry"]["lat"])
+                },
+                Err(e) => return format!("Unable to parse response: {}", e)
+            }
+        }
+        Err(e) => format!("Request to get user's coordinates failed: {}", e)
+    }
 }
 
 pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {

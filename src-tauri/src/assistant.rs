@@ -168,7 +168,7 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, 
             result = match function_name {
                 "get_location_coordinates" => {
                     if let Some(location) = args.get("location").and_then(|v| v.as_str()) {
-                        tools::get_location_coordinates(location)
+                        tools::get_location_coordinates(location).await
                     }
                     else{
                         panic!("Failed to find location is arguments object.")

@@ -15,7 +15,7 @@ lazy_static! {
     static ref OPENAI_KEY: String = {
         match env::var("OPENAI_KEY") {
             Ok(value) => value,
-            Err(_) => panic!("Could not fetch OpenAI key!")
+            Err(_) => panic!("Could not fetch OpenAI API key!")
         }
     };
     static ref IPAPI_KEY: String = {
@@ -28,6 +28,12 @@ lazy_static! {
         match env::var("WEATHER_API_USER_AGENT") {
             Ok(value) => value,
             Err(_) => panic!("Could not fetch weather API User-Agent!")
+        }
+    };
+    static ref OPENCAGE_KEY: String = {
+        match env::var("OPENCAGE_KEY") {
+            Ok(value) => value,
+            Err(_) => panic!("Could not fetch OpenCage API key!")
         }
     };
 }
@@ -46,6 +52,10 @@ pub fn get_open_ai_key() -> &'static String {
 
 pub fn get_ip_api_key() -> &'static String {
     &IPAPI_KEY
+}
+
+pub fn get_opencage_key() -> &'static String {
+    &OPENCAGE_KEY
 }
 
 pub fn get_weather_api_user_agent() -> &'static String {
