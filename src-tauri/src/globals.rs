@@ -5,6 +5,7 @@ use std::sync::Mutex;
 
 lazy_static! {
     static ref REQWEST_CLIENT: Client = Client::new();
+    static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
     static ref MAGNUS_ID: String = {
         match env::var("MAGNUS_ID") {
             Ok(value) => value,
@@ -23,7 +24,12 @@ lazy_static! {
             Err(_) => panic!("Could not fetch IP API key!")
         }
     };
-    static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
+    static ref WEATHER_API_USER_AGENT: String = {
+        match env::var("WEATHER_API_USER_AGENT") {
+            Ok(value) => value,
+            Err(_) => panic!("Could not fetch weather API User-Agent!")
+        }
+    };
 }
 
 pub fn get_reqwest_client() -> &'static Client {
@@ -40,6 +46,10 @@ pub fn get_open_ai_key() -> &'static String {
 
 pub fn get_ip_api_key() -> &'static String {
     &IPAPI_KEY
+}
+
+pub fn get_weather_api_user_agent() -> &'static String {
+    &WEATHER_API_USER_AGENT
 }
 
 pub fn get_thread_id() -> String {

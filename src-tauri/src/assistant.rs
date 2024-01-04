@@ -166,21 +166,20 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, 
         // functions with arguments
         Some(args) => {
             result = match function_name {
-                "get_location_weather" => {
+                "get_location_coordinates" => {
                     if let Some(location) = args.get("location").and_then(|v| v.as_str()) {
-                        tools::get_location_weather(location)
+                        tools::get_location_coordinates(location)
                     }
                     else{
                         panic!("Failed to find location is arguments object.")
                     }
                 },
-                "get_local_weather" => {
-                    if let (Some(latitude), Some(longitude)) = (args.get("latitude"), args.get("longitude")) {
-                        println!("have coords: {}, {}", latitude, longitude);
-                        tools::get_local_weather(&latitude.to_string(), &longitude.to_string())
+                "get_forecast" => {
+                    if let (Some(latitude), Some(longitude), Some(n_days)) = (args.get("latitude"), args.get("longitude"), args.get("n_days")) {
+                        tools::get_forecast(&latitude.to_string(), &longitude.to_string(), &n_days.to_string()).await
                     }                   
                     else {
-                        panic!("Failed to find latitude or longitude in arguments object.")
+                        panic!("Failed to find latitude, longitude, or number of days in arguments object.")
                     }
                 },
                 _ => panic!("No function name given with arguments.")
@@ -189,7 +188,8 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, 
         // functions without arguments
         None => {
             result = match function_name {
-                "get_user_location" => tools::get_user_location().await.unwrap(),
+                "get_user_coordinates" => tools::get_user_coordinates().await,
+                "get_time" => tools::get_time(),
                 "pass" => tools::pass(),
                 _ => panic!("No function name given without arguments.")
             };
