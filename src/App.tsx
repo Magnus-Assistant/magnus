@@ -9,8 +9,8 @@ function App() {
     setText(event.target.value)
   }
 
-  async function createThread() {
-    await invoke('create_thread')
+  async function createMessageThread() {
+    await invoke('create_message_thread')
   }
 
   async function printMessages() {
@@ -23,7 +23,7 @@ function App() {
 
   return (
     <div className="container">
-      <button onClick={createThread}>Create Thread</button>
+      <button onClick={createMessageThread}>Create Message Thread</button>
       <button onClick={printMessages}>Print Messages</button>
       <form onSubmit={createMessage}>
         <input type="text" value={text} onChange={changeText} />

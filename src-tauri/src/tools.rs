@@ -54,7 +54,7 @@ pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {
                                             for day in 0..num_days {
                                                 match days[day].as_object() {
                                                     Some(day_forecast) => {
-                                                        println!("{}: {}\n", day_forecast["name"], day_forecast["detailedForecast"]);
+                                                        // println!("{}: {}\n", day_forecast["name"], day_forecast["detailedForecast"]);
                                                         the_forecast.push_str(format!("{}: {}\n", day_forecast["name"], day_forecast["detailedForecast"]).as_str());
                                                     },
                                                     _ => return format!("Couldn't make day into an object.")
@@ -98,7 +98,7 @@ pub async fn get_user_coordinates() -> String {
 }
 
 pub fn get_time() -> String {
-    println!("{:#?}", Local::now());
+    println!("getting time!");
     format!("{:#?}", Local::now())
 }
 

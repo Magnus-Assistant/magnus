@@ -18,8 +18,8 @@ async fn print_messages() -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn create_thread() -> Result<(), String> {
-  let result = assistant::create_thread().await;
+async fn create_message_thread() -> Result<(), String> {
+  let result = assistant::create_message_thread().await;
 
   match result {
     Ok(thread_id) => {
@@ -63,7 +63,7 @@ fn main() {
   dotenv::dotenv().ok();
 
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![create_thread, create_message, print_messages])
+    .invoke_handler(tauri::generate_handler![create_message_thread, create_message, print_messages])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
   

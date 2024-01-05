@@ -4,7 +4,7 @@ use crate::tools;
 use std::thread;
 use std::time::Duration;
 
-pub async fn create_thread() -> Result<String, Error> {
+pub async fn create_message_thread() -> Result<String, Error> {
     let response = get_reqwest_client()
         .post("https://api.openai.com/v1/threads")
         .header("Content-Type", "application/json")
