@@ -1,16 +1,26 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, Sample, SupportedStreamConfig};
+use cpal::{Device, Sample, Stream, SupportedStreamConfig};
 
 use dasp_interpolate::linear::Linear;
 use dasp_signal::{self as signal, Signal};
-use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 
-///struct containing audio clip information
+pub struct Recordinghandle {
+    stream: Stream,
+    pub clip: Arc<Mutex<Option<InputClip>>>,
+}
 
+impl Recordinghandle {
+    pub fn stop(self) -> InputClip {
+        drop(self.stream);
+        self.clip.lock().unwrap().take().unwrap()
+    }
+}
+
+///struct containing audio clip information
 #[derive(Clone)]
 pub struct InputClip {
-    samples: Vec<f32>,
+    pub samples: Vec<f32>,
     sample_rate: u32,
 }
 
@@ -18,7 +28,6 @@ pub struct StreamData {
     audio_device: Device,
     pub config: SupportedStreamConfig,
 }
-
 
 impl InputClip {
     ///resample the input data for reading via Vosk
@@ -61,12 +70,10 @@ impl InputClip {
         }
     }
 
-    ///Creates and writes input audio information to a Vector and stores them in an InputClip
-    pub async fn create_stream() -> Vec<i16> {
-
+    fn create_clip() -> Arc<Mutex<Option<InputClip>>> {
         //grab stream config, number of channels and create the clip
         let stream_data = Self::build_config();
-        let channels = stream_data.config.channels();
+
         let clip = InputClip {
             samples: Vec::new(),
             sample_rate: stream_data.config.sample_rate().0,
@@ -83,9 +90,16 @@ impl InputClip {
         );
 
         //create a clip Arc Mutex and a clone of clip
-        let clip = Arc::new(Mutex::new(Some(clip)));
-        let clip_2 = clip.clone();
+        Arc::new(Mutex::new(Some(clip)))
+    }
 
+    ///Creates and writes input audio information to a Vector and stores them in an InputClip
+    pub fn create_stream() -> Recordinghandle {
+        let stream_data = Self::build_config();
+        let channels = stream_data.config.channels();
+
+        let clip = Self::create_clip();
+        let clip_2 = clip.clone();
 
         //create a type for our writer, and define how we write data to the input Array
         //This array can get HUGE. 44100 items a second big. Would be better to use a buffer
@@ -101,19 +115,6 @@ impl InputClip {
                     }
                 }
             }
-        }
-
-        /// Converts the F32 (floating point) values to the needed 16bit PCM type for processing
-        fn process_input_data(data: Vec<f32>) -> Vec<i16> {
-            let pcm_samples: Vec<i16> = data
-                .iter()
-                .map(|&sample| {
-                    // Scale and convert to 16-bit PCM
-                    (sample * i16::MAX as f32).clamp(-i16::MAX as f32, i16::MAX as f32) as i16
-                })
-                .collect();
-
-            pcm_samples
         }
 
         // Generic error callback function for when we are creating input streams
@@ -154,31 +155,20 @@ impl InputClip {
             _ => todo!(),
         };
 
-        //Log how starting the input stream goes
-        match stream.play() {
-            Ok(_) => println!("Play Executed Successfully"),
-            Err(p) => println!("Play failed: {}", p),
-        }
+        let _ = stream.play();
 
-        //create a channel that lets us use CTRL-C to stop it 
-        let (tx, rx) = channel();
-        match ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel.")) {
-            Ok(_) => {}
-            Err(e) => println!("{}", e),
-        }
+        //let finished_clip = clip.lock().unwrap().take().unwrap();
+        Recordinghandle { stream, clip }
+    }
 
-        println!("Waiting for Ctrl-C...");
-        rx.recv().expect("Failed to receive Kill");
-        println!("Got it! Exiting...");
-
-        //get rid of the stream and create the clip
-        drop(stream);
-        let clip = clip.lock().unwrap().take().unwrap();
-
+    pub fn resample_clip(mut clip: InputClip) -> InputClip {
         //resample the clip data to the correct format for the model
+        let stream_data = Self::build_config(); //build config again since we took ownership and dropped it above
         let new_samples = Self::resample(stream_data.config.sample_rate().0, &clip);
         println!("Recorded {} samples", clip.clone().samples.len());
 
-        process_input_data(new_samples)
+        //process_input_data(new_samples)
+        clip.samples = new_samples;
+        clip
     }
 }

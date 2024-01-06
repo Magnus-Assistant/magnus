@@ -12,14 +12,19 @@ function App() {
   }
 
   async function startStream() {
-    await invoke('start_test_stream');
+    await invoke('start_stream');
+  }
+
+  async function stopStream() {
+    await invoke("stop_stream");
   }
 
   return (
     <div className="container">
       <button onClick={consolePrint}>Print To Console</button>
       <button onClick={startModel}>Start Vosk Model</button>
-      <button onClick={startStream}>Start Test Audio Stream</button>
+      <button onClick={startStream}>Start Audio Stream</button>
+      <button onClick={stopStream}>Stop Audio Stream</button>
     </div>
   );
 }

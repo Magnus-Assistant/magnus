@@ -25,6 +25,7 @@ dasp_sample = "0.11.0"
 ctrlc = "3.4.2"
 eyre = "0.6.11"
 color-eyre = "0.6.2"
+crossbeam = {version = "0.8.3", features = ["crossbeam-channel"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
