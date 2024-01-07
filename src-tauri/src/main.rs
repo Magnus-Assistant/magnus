@@ -1,79 +1,21 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use vosk::{Model, Recognizer};
-
 use audio_stream::InputClip;
 use crossbeam::channel::{unbounded, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::SystemTime;
-mod audio_stream;
 
+mod audio_stream;
 mod assistant;
 mod globals;
 mod tools;
+mod model_utils;
 
 use dotenv;
 
 struct AppState {
     stream_sender: Option<Sender<()>>,
-}
-
-/// Converts the F32 (floating point) values to the needed 16bit PCM type for processing
-fn convert_to_16pcm(clip_data: &Vec<f32>) -> Vec<i16> {
-    let pcm_samples: Vec<i16> = clip_data
-        .iter()
-        .map(|&sample| {
-            // Scale and convert to 16-bit PCM
-            (sample * i16::MAX as f32).clamp(-i16::MAX as f32, i16::MAX as f32) as i16
-        })
-        .collect();
-
-    pcm_samples
-}
-
-fn start_model(data_stream: &Vec<i16>) {
-    println!("Starting Vosk model with live audio...");
-    //grab the stream data so we can dynamically read audio based on what the
-    //system assigns for the config
-    let stream_data = InputClip::build_config();
-    let start = SystemTime::now();
-
-    #[cfg(target_os = "macos")]
-    let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-
-    #[cfg(target_os = "windows")]
-    let model_path = "C:/Users/schre/Projects/vosk-model-en-us-0.42-gigaspeech/";
-
-    let model = Model::new(model_path).unwrap();
-    let mut recognizer =
-        Recognizer::new(&model, stream_data.config.sample_rate().0 as f32).unwrap();
-
-    recognizer.set_max_alternatives(10);
-    recognizer.set_words(true);
-    recognizer.set_partial_words(true);
-
-    let stop = SystemTime::now();
-    match stop.duration_since(start) {
-        Ok(t) => println!("Finished Loading model... Took => {:?}", t),
-        Err(t) => println!("Error getting time: {}", t),
-    };
-
-    println!("Processing Audio Data...");
-    let start = SystemTime::now();
-    // prints out the partial results. Often times this prints a LOT
-    for sample in data_stream.chunks(100) {
-        recognizer.accept_waveform(sample);
-    }
-
-    println!("{:#?}", recognizer.final_result().multiple().unwrap());
-    let stop = SystemTime::now();
-
-    match stop.duration_since(start) {
-        Ok(t) => println!("Finished Processing... Took => {:?}", t),
-        Err(t) => println!("Error getting time: {}", t),
-    };
 }
 
 #[tauri::command]
@@ -101,7 +43,8 @@ fn start_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
         let transformed = InputClip::resample_clip(clip);
 
         //once we have the needed InputClip we start the model on that audio
-        start_model(&convert_to_16pcm(&transformed.samples));
+        model_utils::start_model(&audio_stream::convert_to_16pcm(&transformed.samples));
+        
     });
 }
 

@@ -6,12 +6,12 @@ use dasp_signal::{self as signal, Signal};
 use std::sync::{Arc, Mutex};
 
 ///holds the stream object and audio clip
-pub struct Recordinghandle {
+pub struct RecordingHandle {
     stream: Stream,
     pub clip: Arc<Mutex<Option<InputClip>>>,
 }
 
-impl Recordinghandle {
+impl RecordingHandle {
     pub fn stop(self) -> InputClip {
         drop(self.stream);
         self.clip.lock().unwrap().take().unwrap()
@@ -96,7 +96,7 @@ impl InputClip {
     }
 
     ///Creates and writes input audio information to a Vector and stores them in an RecordingHandle
-    pub fn create_stream() -> Recordinghandle {
+    pub fn create_stream() -> RecordingHandle {
         let stream_data = Self::build_config();
         let channels = stream_data.config.channels();
 
@@ -160,7 +160,7 @@ impl InputClip {
         let _ = stream.play();
 
         //return a recording handle with the stream object and new audio clip
-        Recordinghandle { stream, clip }
+        RecordingHandle { stream, clip }
     }
 
     pub fn resample_clip(mut clip: InputClip) -> InputClip {
@@ -171,4 +171,17 @@ impl InputClip {
         clip.samples = new_samples;
         clip
     }
+}
+
+/// Converts the F32 (floating point) values to the needed 16bit PCM type for processing
+pub fn convert_to_16pcm(clip_data: &Vec<f32>) -> Vec<i16> {
+    let pcm_samples: Vec<i16> = clip_data
+        .iter()
+        .map(|&sample| {
+            // Scale and convert to 16-bit PCM
+            (sample * i16::MAX as f32).clamp(-i16::MAX as f32, i16::MAX as f32) as i16
+        })
+        .collect();
+
+    pcm_samples
 }
