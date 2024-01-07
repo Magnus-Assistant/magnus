@@ -93,7 +93,7 @@ impl InputClip {
         Arc::new(Mutex::new(Some(clip)))
     }
 
-    ///Creates and writes input audio information to a Vector and stores them in an InputClip
+    ///Creates and writes input audio information to a Vector and stores them in an RecordingHandle
     pub fn create_stream() -> Recordinghandle {
         let stream_data = Self::build_config();
         let channels = stream_data.config.channels();
@@ -162,12 +162,10 @@ impl InputClip {
     }
 
     pub fn resample_clip(mut clip: InputClip) -> InputClip {
-        //resample the clip data to the correct format for the model
         let stream_data = Self::build_config(); //build config again since we took ownership and dropped it above
         let new_samples = Self::resample(stream_data.config.sample_rate().0, &clip);
         println!("Recorded {} samples", clip.clone().samples.len());
 
-        //process_input_data(new_samples)
         clip.samples = new_samples;
         clip
     }

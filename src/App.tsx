@@ -31,8 +31,6 @@ function App() {
 
   return (
     <div className="container">
-      <button onClick={consolePrint}>Print To Console</button>
-      <button onClick={startModel}>Start Vosk Model</button>
       <button onClick={startStream}>Start Audio Stream</button>
       <button onClick={stopStream}>Stop Audio Stream</button>
       <button onClick={createMessageThread}>Create Message Thread</button>
