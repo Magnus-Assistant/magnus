@@ -40,7 +40,11 @@ fn start_model(data_stream: &Vec<i16>) {
     let stream_data = InputClip::build_config();
     let start = SystemTime::now();
 
+    #[cfg(target_os = "macos")]
     let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+
+    #[cfg(target_os = "windows")]
+    let model_path = "C:/Users/schre/Projects/vosk-model-en-us-0.42-gigaspeech/";
 
     let model = Model::new(model_path).unwrap();
     let mut recognizer =
