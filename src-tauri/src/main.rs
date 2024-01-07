@@ -5,10 +5,10 @@ mod assistant;
 mod tools;
 mod globals;
 
-use scrap::{Capturer, Display};
-use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
-use std::{io::ErrorKind::WouldBlock, time::Duration, thread::sleep, path::Path, fs::File};
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
+use scrap::{Capturer, Display};
+use image::{Rgba, ImageEncoder, ImageBuffer, ColorType::Rgba8, codecs::png::PngEncoder};
+use std::{io::ErrorKind::WouldBlock, time::Duration, thread::sleep, path::Path, fs::File};
 
 #[tauri::command]
 fn capture_screen() {
@@ -17,31 +17,43 @@ fn capture_screen() {
   let height: u32 = display.height().try_into().unwrap();
   let mut capturer = Capturer::new(display).expect("Couldn't begin capture.");
 
-  // keep trying until we can get a frame, or error occurs
   loop {
-    match capturer.frame() {
-      Ok(frame) => {
-        // for now we can write it to a file to view
-        let path = Path::new("C:/Users/schre/Projects/screenshot.png");
-        let file = File::create(path).expect("Couldn't create output file.");
-        let encoder = PngEncoder::new(file);        
-        encoder.write_image(&frame, width, height, ColorType::Rgba8).expect("Couldn't encode frame.");
-
-        // eventually, we will just send the base64 encoding of the image to the assistant
-        let encoding = &BASE64_STANDARD_NO_PAD.encode(frame.to_vec());
-        // println!("{:#?}", encoding);
-        break;  
-      }
-      Err(e) => {
-        if e.kind() == WouldBlock {
-          // wait for the next frame
+    // wait for a frame
+    let buffer = match capturer.frame() {
+      Ok(buffer) => buffer,
+      Err(e) if e.kind() == WouldBlock => {
           sleep(Duration::from_millis(100));
-        } 
-        else {
-          panic!("{:?}", e);
-        }
+          continue;
       }
-    }
+      Err(e) => panic!("Error: {}", e),
+    };
+
+    // write file as image for now, for viewing purposes
+    let path = Path::new("C:/Users/schre/Projects/screenshot.png");
+    let file = File::create(path).expect("Couldn't create output file.");
+    let encoder = PngEncoder::new(file);        
+    encoder.write_image(&buffer, width, height, Rgba8).expect("Couldn't encode frame.");
+
+    /*
+    // the following lines encode the image into a base64 string 
+    // convert the image data to an image
+    let img = ImageBuffer::from_fn(width, height, |x, y| {
+        let index = 4 * (y * width + x) as usize;
+        let data = &buffer[index..index+4];
+        Rgba([data[0], data[1], data[2], data[3]])
+    });
+
+    // save the image into a new vec
+    let mut bytes: Vec<u8> = Vec::new();
+    PngEncoder::new(&mut bytes).write_image(&img, width, height, Rgba8).unwrap();
+
+    // encode the image data to base64
+    let base64_image = &BASE64_STANDARD_NO_PAD.encode(&bytes);
+    println!("first 10: {:?}\nlast 10: {:?}", base64_image.get(..10), base64_image.get(base64_image.len()-10..));
+    */
+
+    // only need one frame
+    break;
   }
 }
 
