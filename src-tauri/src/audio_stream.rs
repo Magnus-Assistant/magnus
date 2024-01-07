@@ -5,6 +5,7 @@ use dasp_interpolate::linear::Linear;
 use dasp_signal::{self as signal, Signal};
 use std::sync::{Arc, Mutex};
 
+///holds the stream object and audio clip
 pub struct Recordinghandle {
     stream: Stream,
     pub clip: Arc<Mutex<Option<InputClip>>>,
@@ -24,6 +25,7 @@ pub struct InputClip {
     sample_rate: u32,
 }
 
+///holds stream config and audio device information
 pub struct StreamData {
     audio_device: Device,
     pub config: SupportedStreamConfig,
@@ -65,7 +67,7 @@ impl InputClip {
 
         //return a StreamData struct with all the needed info
         StreamData {
-            audio_device: audio_device,
+            audio_device,
             config: supported_config,
         }
     }
@@ -89,7 +91,7 @@ impl InputClip {
             stream_data.config.sample_format()
         );
 
-        //create a clip Arc Mutex and a clone of clip
+        //return a arc mutex of the created clip
         Arc::new(Mutex::new(Some(clip)))
     }
 
@@ -128,7 +130,7 @@ impl InputClip {
                 .audio_device
                 .build_input_stream(
                     &stream_data.config.clone().into(),
-                    move |data, _: &_| write_data::<f32>(data, channels, &clip_2),
+                    move |data, _: &_| write_data::<i16>(data, channels, &clip_2),
                     err_fn,
                     None,
                 )
@@ -137,7 +139,7 @@ impl InputClip {
                 .audio_device
                 .build_input_stream(
                     &stream_data.config.clone().into(),
-                    move |data, _: &_| write_data::<i16>(data, channels, &clip_2),
+                    move |data, _: &_| write_data::<u16>(data, channels, &clip_2),
                     err_fn,
                     None,
                 )
@@ -146,7 +148,7 @@ impl InputClip {
                 .audio_device
                 .build_input_stream(
                     &stream_data.config.clone().into(),
-                    move |data, _: &_| write_data::<u16>(data, channels, &clip_2),
+                    move |data, _: &_| write_data::<f32>(data, channels, &clip_2),
                     err_fn,
                     None,
                 )
@@ -157,7 +159,7 @@ impl InputClip {
 
         let _ = stream.play();
 
-        //let finished_clip = clip.lock().unwrap().take().unwrap();
+        //return a recording handle with the stream object and new audio clip
         Recordinghandle { stream, clip }
     }
 

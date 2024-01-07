@@ -21,8 +21,8 @@ struct AppState {
 }
 
 /// Converts the F32 (floating point) values to the needed 16bit PCM type for processing
-fn process_input_data(data: &Vec<f32>) -> Vec<i16> {
-    let pcm_samples: Vec<i16> = data
+fn convert_to_16pcm(clip_data: &Vec<f32>) -> Vec<i16> {
+    let pcm_samples: Vec<i16> = clip_data
         .iter()
         .map(|&sample| {
             // Scale and convert to 16-bit PCM
@@ -97,7 +97,7 @@ fn start_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
         let transformed = InputClip::resample_clip(clip);
 
         //once we have the needed InputClip we start the model on that audio
-        start_model(&process_input_data(&transformed.samples));
+        start_model(&convert_to_16pcm(&transformed.samples));
     });
 }
 
