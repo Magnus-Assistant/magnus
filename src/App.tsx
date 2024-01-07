@@ -21,8 +21,18 @@ function App() {
     await invoke('create_message', { message: text })
   }
 
+  async function startStream() {
+    await invoke('start_stream');
+  }
+
+  async function stopStream() {
+    await invoke("stop_stream");
+  }
+
   return (
     <div className="container">
+      <button onClick={startStream}>Start Audio Stream</button>
+      <button onClick={stopStream}>Stop Audio Stream</button>
       <button onClick={createMessageThread}>Create Message Thread</button>
       <button onClick={printMessages}>Print Messages</button>
       <form onSubmit={createMessage}>
