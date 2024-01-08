@@ -189,6 +189,8 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, 
         None => {
             result = match function_name {
                 "get_user_coordinates" => tools::get_user_coordinates().await,
+                "get_clipboard_text" => tools::get_clipboard_text(),
+                "get_screenshot" => tools::get_screenshot().await,
                 "get_time" => tools::get_time(),
                 "pass" => tools::pass(),
                 _ => panic!("No function name given without arguments.")
