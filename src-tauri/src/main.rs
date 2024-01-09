@@ -88,11 +88,12 @@ async fn create_message_thread() -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn create_message(message: String) -> Result<(), String> {
+async fn create_message(message: String) {
     let data = serde_json::json!({
-      "role": "user",
-      "content": message
+        "role": "user",
+        "content": message
     });
+  
     // add message to the thread of messages
     let _ = assistant::create_message(data, globals::get_thread_id()).await;
     println!("message: {}", message);
@@ -110,8 +111,6 @@ async fn create_message(message: String) -> Result<(), String> {
 
     // lets see the response from the assistant
     let _ = assistant::print_assistant_last_response(globals::get_thread_id()).await;
-
-    Ok(())
 }
 
 fn main() {
