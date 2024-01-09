@@ -61,9 +61,13 @@ function App() {
 
 
   async function useGPTwithAudio() {
-    await createMessageThread();
     const text = await getStreamResults();
-    await createMessageWithParam(text);
+    if (text) {
+      await createMessageThread();
+      await createMessageWithParam(text);
+    } else {
+      console.log("We dont have text yet...")
+    }
   }
 
   return (
