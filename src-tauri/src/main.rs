@@ -61,6 +61,11 @@ fn stop_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
 }
 
 #[tauri::command]
+async fn get_system_report() {
+    let _ = tools::get_system_report();
+}
+
+#[tauri::command]
 async fn print_messages() -> Result<(), String> {
     let result = assistant::print_messages(globals::get_thread_id()).await;
 
@@ -129,7 +134,8 @@ fn main() {
             stop_stream,
             create_message_thread,
             create_message,
-            print_messages
+            print_messages,
+            get_system_report
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

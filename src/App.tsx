@@ -29,8 +29,13 @@ function App() {
     await invoke("stop_stream");
   }
 
+  async function getSystemReport() {
+    await invoke("get_system_report");
+  }
+
   return (
     <div className="container">
+      <button onClick={getSystemReport}>Get System Report</button>
       <button onClick={startStream}>Start Audio Stream</button>
       <button onClick={stopStream}>Stop Audio Stream</button>
       <button onClick={createMessageThread}>Create Message Thread</button>
