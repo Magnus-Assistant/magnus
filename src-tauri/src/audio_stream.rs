@@ -90,6 +90,14 @@ impl InputClip {
             "Using Sample Format of: {}",
             stream_data.config.sample_format()
         );
+        println!(
+            "Using this many Channels: {}",
+            stream_data.config.channels()
+        );
+        println!(
+            "Using buffer size of: {:?}",
+            stream_data.config.buffer_size()
+        );
 
         //return a arc mutex of the created clip
         Arc::new(Mutex::new(Some(clip)))
