@@ -90,7 +90,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                                     tool_output = execute(&function_name, Some(args)).await?;
                                 }
                             },
-                            Err(_) => tool_output = execute(&function_name, None).await?
+                            Err(_) => tool_output = "No arguments key found in tool call".to_string(),
                         }
 
                         // println!("received output: {}\n for tool call: {}", tool_output, tool_call["id"]);
