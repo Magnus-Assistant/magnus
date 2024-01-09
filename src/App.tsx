@@ -9,14 +9,6 @@ function App() {
     setText(event.target.value)
   }
 
-  async function getClipboardText() {
-    await invoke('get_clipboard_text')
-  }
-
-  async function captureScreen() {
-    await invoke('capture_screen')
-  }
-
   async function createMessageThread() {
     await invoke('create_message_thread')
   }
@@ -31,8 +23,6 @@ function App() {
 
   return (
     <div className="container">
-      <button onClick={getClipboardText}>Get Clipboard Text</button>
-      <button onClick={captureScreen}>Capture Screen</button>
       <button onClick={createMessageThread}>Create Message Thread</button>
       <button onClick={printMessages}>Print Messages</button>
       <form onSubmit={createMessage}>
