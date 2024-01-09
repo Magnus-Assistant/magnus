@@ -123,7 +123,7 @@ pub async fn submit_tool_outputs(run_id: &str, thread_id: String, tool_outputs: 
     Ok(())
 }
 
-pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Error> {
+pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Error> {
     let response = get_reqwest_client()
         .get(format!("https://api.openai.com/v1/threads/{}/messages", thread_id))
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
@@ -132,10 +132,8 @@ pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Erro
         .await?;
 
     let messages = response.json::<serde_json::Value>().await?;
-
-    println!("response: {}", format!("{}", messages["data"][0]["content"][0]["text"]["value"]));
     
-    Ok(())
+    Ok(messages["data"][0]["content"][0]["text"]["value"].to_string())
 }
 
 pub async fn print_messages(thread_id: String) -> Result<(), Error> {
