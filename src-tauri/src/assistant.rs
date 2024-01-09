@@ -1,6 +1,6 @@
-use reqwest::Error;
-use crate::globals::{ get_reqwest_client, get_magnus_id, get_open_ai_key };
+use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client};
 use crate::tools;
+use reqwest::Error;
 use std::thread;
 use std::time::Duration;
 
@@ -20,7 +20,10 @@ pub async fn create_message_thread() -> Result<String, Error> {
 
 pub async fn create_message(message: serde_json::Value, thread_id: String) -> Result<(), Error> {
     get_reqwest_client()
-        .post(format!("https://api.openai.com/v1/threads/{}/messages", thread_id))
+        .post(format!(
+            "https://api.openai.com/v1/threads/{}/messages",
+            thread_id
+        ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
@@ -37,7 +40,10 @@ pub async fn create_run(thread_id: String) -> Result<String, Error> {
     });
 
     let response = get_reqwest_client()
-        .post(format!("https://api.openai.com/v1/threads/{}/runs", thread_id))
+        .post(format!(
+            "https://api.openai.com/v1/threads/{}/runs",
+            thread_id
+        ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
@@ -53,7 +59,10 @@ pub async fn create_run(thread_id: String) -> Result<String, Error> {
 pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> {
     loop {
         let response = get_reqwest_client()
-            .get(format!("https://api.openai.com/v1/threads/{}/runs/{}", thread_id, run_id))
+            .get(format!(
+                "https://api.openai.com/v1/threads/{}/runs/{}",
+                thread_id, run_id
+            ))
             .header("Authorization", format!("Bearer {}", get_open_ai_key()))
             .header("OpenAI-Beta", "assistants=v1")
             .send()
@@ -62,35 +71,43 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
         let run = response.json::<serde_json::Value>().await?;
 
         if run["status"] == "completed" {
-            return Ok(()); 
-        }
-        else if run["status"] == "requires_action" && run["required_action"]["type"] == "submit_tool_outputs" {
+            return Ok(());
+        } else if run["status"] == "requires_action"
+            && run["required_action"]["type"] == "submit_tool_outputs"
+        {
             let mut tool_outputs: Vec<serde_json::Value> = vec![];
 
-            if let Some(tool_calls) =  run["required_action"]["submit_tool_outputs"]["tool_calls"].as_array() {
+            if let Some(tool_calls) =
+                run["required_action"]["submit_tool_outputs"]["tool_calls"].as_array()
+            {
                 for tool_call in tool_calls {
                     if let Some(tool_call_obj) = tool_call.as_object() {
-
                         // println!("\ntool_call:\n{:#?}", tool_call);
 
-                        let function_name = &tool_call_obj["function"]["name"].to_string().trim_matches('"').to_string();
+                        let function_name = &tool_call_obj["function"]["name"]
+                            .to_string()
+                            .trim_matches('"')
+                            .to_string();
 
                         let tool_output: String;
 
                         let arguments = &tool_call_obj["function"]["arguments"].as_str().unwrap();
 
-                        let arguments_object = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(arguments);
-                        
+                        let arguments_object = serde_json::from_str::<
+                            serde_json::Map<String, serde_json::Value>,
+                        >(arguments);
+
                         match arguments_object {
                             Ok(args) => {
                                 if args.is_empty() {
                                     tool_output = execute(&function_name, None).await?;
-                                }
-                                else {
+                                } else {
                                     tool_output = execute(&function_name, Some(args)).await?;
                                 }
-                            },
-                            Err(_) => tool_output = "No arguments key found in tool call".to_string(),
+                            }
+                            Err(_) => {
+                                tool_output = "No arguments key found in tool call".to_string()
+                            }
                         }
 
                         // println!("received output: {}\n for tool call: {}", tool_output, tool_call["id"]);
@@ -101,18 +118,29 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                         }));
                     }
                 }
-                let _ = submit_tool_outputs(run_id, thread_id.clone(), serde_json::json!({"tool_outputs": tool_outputs})).await;
+                let _ = submit_tool_outputs(
+                    run_id,
+                    thread_id.clone(),
+                    serde_json::json!({"tool_outputs": tool_outputs}),
+                )
+                .await;
             }
-        }
-        else {
+        } else {
             thread::sleep(Duration::from_secs(1));
         }
     }
 }
 
-pub async fn submit_tool_outputs(run_id: &str, thread_id: String, tool_outputs: serde_json::Value) -> Result<(), Error> {
+pub async fn submit_tool_outputs(
+    run_id: &str,
+    thread_id: String,
+    tool_outputs: serde_json::Value,
+) -> Result<(), Error> {
     let _ = get_reqwest_client()
-        .post(format!("https://api.openai.com/v1/threads/{}/runs/{}/submit_tool_outputs", thread_id, run_id))
+        .post(format!(
+            "https://api.openai.com/v1/threads/{}/runs/{}/submit_tool_outputs",
+            thread_id, run_id
+        ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
@@ -125,7 +153,10 @@ pub async fn submit_tool_outputs(run_id: &str, thread_id: String, tool_outputs: 
 
 pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Error> {
     let response = get_reqwest_client()
-        .get(format!("https://api.openai.com/v1/threads/{}/messages", thread_id))
+        .get(format!(
+            "https://api.openai.com/v1/threads/{}/messages",
+            thread_id
+        ))
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
         .send()
@@ -133,14 +164,20 @@ pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Erro
 
     let messages = response.json::<serde_json::Value>().await?;
 
-    println!("response: {}", format!("{}", messages["data"][0]["content"][0]["text"]["value"]));
-    
+    println!(
+        "response: {}",
+        format!("{}", messages["data"][0]["content"][0]["text"]["value"])
+    );
+
     Ok(())
 }
 
 pub async fn print_messages(thread_id: String) -> Result<(), Error> {
     let response = get_reqwest_client()
-        .get(format!("https://api.openai.com/v1/threads/{}/messages", thread_id))
+        .get(format!(
+            "https://api.openai.com/v1/threads/{}/messages",
+            thread_id
+        ))
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
         .send()
@@ -158,8 +195,14 @@ pub async fn print_messages(thread_id: String) -> Result<(), Error> {
     Ok(())
 }
 
-async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, serde_json::Value>>) -> Result<String, Error> {
-    println!("wants to call: {}\nwith args: {:#?}", function_name, arguments);
+async fn execute(
+    function_name: &str,
+    arguments: Option<serde_json::Map<String, serde_json::Value>>,
+) -> Result<String, Error> {
+    println!(
+        "wants to call: {}\nwith args: {:#?}",
+        function_name, arguments
+    );
     let result: String;
 
     match arguments {
@@ -169,35 +212,41 @@ async fn execute(function_name: &str, arguments: Option<serde_json::Map<String, 
                 "get_location_coordinates" => {
                     if let Some(location) = args.get("location").and_then(|v| v.as_str()) {
                         tools::get_location_coordinates(location).await
-                    }
-                    else{
+                    } else {
                         panic!("Failed to find location is arguments object.")
                     }
-                },
+                }
                 "get_forecast" => {
-                    if let (Some(latitude), Some(longitude), Some(n_days)) = (args.get("latitude"), args.get("longitude"), args.get("n_days")) {
-                        tools::get_forecast(&latitude.to_string(), &longitude.to_string(), &n_days.to_string()).await
-                    }                   
-                    else {
+                    if let (Some(latitude), Some(longitude), Some(n_days)) = (
+                        args.get("latitude"),
+                        args.get("longitude"),
+                        args.get("n_days"),
+                    ) {
+                        tools::get_forecast(
+                            &latitude.to_string(),
+                            &longitude.to_string(),
+                            &n_days.to_string(),
+                        )
+                        .await
+                    } else {
                         panic!("Failed to find latitude, longitude, or number of days in arguments object.")
                     }
-                },
-                _ => panic!("No function name given with arguments.")
+                }
+                _ => panic!("No function name given with arguments."),
             };
-        },
+        }
         // functions without arguments
         None => {
             result = match function_name {
                 "get_user_coordinates" => tools::get_user_coordinates().await,
-                "get_clipboard_text" => tools::get_clipboard_text(),
+                "get_clipboard_text" => tools::get_clipboard_text().await,
                 "get_screenshot" => tools::get_screenshot().await,
                 "get_time" => tools::get_time(),
                 "pass" => tools::pass(),
-                _ => panic!("No function name given without arguments.")
+                _ => panic!("No function name given without arguments."),
             };
         }
     }
 
     Ok(result)
 }
-

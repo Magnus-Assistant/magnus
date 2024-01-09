@@ -2,50 +2,91 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use audio_stream::InputClip;
-use crossbeam::channel::{unbounded, Sender};
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
-mod audio_stream;
 mod assistant;
+mod audio_stream;
 mod globals;
-mod tools;
 mod model_utils;
+mod tools;
 
 use dotenv;
 
 struct AppState {
-    stream_sender: Option<Sender<()>>,
+    stream_sender: Option<Sender<String>>,
+    result_sender: Option<Sender<AudioStreamResult>>,
+    result_receiver: Option<Receiver<AudioStreamResult>>,
+}
+
+#[derive(Debug)]
+enum AudioStreamResult {
+    Result(String),
 }
 
 #[tauri::command]
 ///Starts an audio input stream
 fn start_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
-    //create the sender so we can add it to state and the receiver for the thread
-    let (stream_sender, stream_receiver) = unbounded::<()>();
+    //create the sender and recievers so we can add it to state
+    let (stream_sender, stream_receiver) = unbounded::<String>();
+    let stream_receiver_clone = stream_receiver.clone();
+    let (result_sender, result_reciever) = unbounded::<AudioStreamResult>();
+    let result_sender_clone = result_sender.clone();
+
+    //add senders and receivers to tauri state
     state.lock().unwrap().stream_sender = Some(stream_sender);
+    state.lock().unwrap().result_sender = Some(result_sender);
+    state.lock().unwrap().result_receiver = Some(result_reciever);
 
-    //clone it because we are passing ownership to the thread
-    let receiver = stream_receiver.clone();
-
-    //spawn a thread that hold the ongoing input stream
+    //spawn a thread that holds the ongoing input stream
     thread::spawn(move || {
         let handle = InputClip::create_stream();
-        match receiver.recv() {
+
+        //wait for the kill signal to stop the stream
+        match stream_receiver_clone.recv() {
             Ok(_) => {
                 println!("Stopping stream...");
             }
-            Err(e) => eprintln!("Error receiving signal: {}", e),
+            Err(e) => eprintln!("Error receiving signal to stop stream: {}", e),
         }
 
-        //after the stop is received we want to drop the stream object and return the InputClip that was made
+        //after the kill is received we want to drop the stream object and return the InputClip that was made
         let clip = handle.stop();
         let transformed = InputClip::resample_clip(clip);
 
-        //once we have the needed InputClip we start the model on that audio
-        model_utils::start_model(&audio_stream::convert_to_16pcm(&transformed.samples));
-        
+        //once we have the needed InputClip we start the model on that audio and send its results to the main thread
+        let model_results =
+            model_utils::start_model(&audio_stream::convert_to_16pcm(&transformed.samples));
+
+        let final_result = AudioStreamResult::Result(model_results);
+        result_sender_clone.send(final_result).unwrap();
     });
+}
+
+#[tauri::command]
+///returns the string output of the vosk model
+fn get_stream_results(state: tauri::State<Arc<Mutex<AppState>>>) -> Option<String> {
+    if let Some(receiver) = &state.lock().unwrap().result_receiver {
+        /*
+        If we request for the results and its not finished or doesn't exist we dont want to
+        block the thread forever so we timeout on the recv.
+        */
+        match receiver.recv_timeout(Duration::from_millis(200)) {
+            Ok(status) => match status {
+                //if we successfully received a result return it
+                AudioStreamResult::Result(output) => return Some(output),
+            },
+            Err(_) => {
+                println!("Get stream results request timed out... Is the stream completed?");
+                return None;
+            }
+        }
+    } else {
+        println!("Failed to get Receiver for stream results");
+        return None;
+    }
 }
 
 #[tauri::command]
@@ -54,7 +95,7 @@ fn stop_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
     // try to obtain a sender so we can use it
     if let Some(sender) = &state.lock().unwrap().stream_sender {
         let sender_clone = sender.clone();
-        if sender_clone.send(()).is_err() {
+        if sender_clone.send("stop stream".to_string()).is_err() {
             println!("Failed to send stop signal to stream thread.");
         }
     }
@@ -93,7 +134,7 @@ async fn create_message(message: String) {
         "role": "user",
         "content": message
     });
-  
+
     // add message to the thread of messages
     let _ = assistant::create_message(data, globals::get_thread_id()).await;
     println!("message: {}", message);
@@ -120,6 +161,8 @@ fn main() {
     //initialize app state
     let app_state = Arc::new(Mutex::new(AppState {
         stream_sender: None,
+        result_sender: None,
+        result_receiver: None,
     }));
 
     tauri::Builder::default()
@@ -129,7 +172,8 @@ fn main() {
             stop_stream,
             create_message_thread,
             create_message,
-            print_messages
+            print_messages,
+            get_stream_results
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

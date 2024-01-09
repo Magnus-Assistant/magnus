@@ -4,8 +4,7 @@ use vosk::{Model, Recognizer};
 
 use crate::audio_stream::InputClip;
 
-
-pub fn start_model(data_stream: &Vec<i16>) {
+pub fn start_model(data_stream: &Vec<i16>) -> String {
     println!("Starting Vosk model with live audio...");
     //grab the stream data so we can dynamically read audio based on what the
     //system assigns for the config
@@ -34,16 +33,19 @@ pub fn start_model(data_stream: &Vec<i16>) {
 
     println!("Processing Audio Data...");
     let start = SystemTime::now();
-    // prints out the partial results. Often times this prints a LOT
     for sample in data_stream.chunks(100) {
         recognizer.accept_waveform(sample);
     }
 
-    println!("{:#?}", recognizer.final_result().multiple().unwrap());
+    //println!("{:#?}", recognizer.final_result().multiple().unwrap());
     let stop = SystemTime::now();
 
     match stop.duration_since(start) {
         Ok(t) => println!("Finished Processing... Took => {:?}", t),
         Err(t) => println!("Error getting time: {}", t),
     };
+
+    let recognizer_result: String =
+        String::from(recognizer.final_result().multiple().unwrap().alternatives[0].text);
+    recognizer_result
 }
