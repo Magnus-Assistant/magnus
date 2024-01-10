@@ -115,7 +115,7 @@ async fn create_message(message: String) {
 
     // print and speak
     println!("response: {}", response.clone());
-    tts::speak(response).await;
+    tts::speak(response);
 }
 
 fn main() {
