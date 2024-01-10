@@ -3,6 +3,8 @@ use crate::globals::{
 };
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
+use clipboard::ClipboardContext;
+use clipboard::ClipboardProvider;
 use image::{
     codecs::png::PngEncoder, imageops::resize, imageops::FilterType::Triangle, ColorType::Rgba8,
     ImageBuffer, ImageEncoder, Rgba,
@@ -142,7 +144,13 @@ pub async fn get_user_coordinates() -> String {
 
 #[cfg(target_os = "macos")]
 pub fn get_clipboard_text() -> String {
-    todo!();
+    let mut clipboard = ClipboardContext::new().unwrap();
+    match clipboard.get_contents() {
+        Ok(text) => text,
+        Err(error) => {
+            panic!("Error getting clipboard contents: {}", error);
+        },
+    }
 }
 
 #[cfg(target_os = "windows")]
