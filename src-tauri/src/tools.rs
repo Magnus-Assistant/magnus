@@ -10,7 +10,7 @@ use image::{
 use scrap::{Capturer, Display};
 use serde_json::Value;
 use std::{
-    ffi::OsString, fs::File, io::ErrorKind::WouldBlock, path::Path, ptr, thread::sleep,
+    ffi::OsString, fs::File, io::ErrorKind::WouldBlock, os::windows::ffi::{OsStringExt, OsStrExt}, path::Path, ptr, thread::sleep,
     time::Duration,
 };
 use urlencoding::encode;
@@ -154,7 +154,7 @@ pub fn get_clipboard_text() -> String {
         }
 
         // check if there is clipboard data
-        let clipboard_data = windows_specific::GetClipboardData(CF_UNICODETEXT);
+        let clipboard_data = windows_specific::GetClipboardData(windows_specific::CF_UNICODETEXT);
         if clipboard_data.is_null() {
             "ERROR: No clipboard data".to_string();
             windows_specific::CloseClipboard();
