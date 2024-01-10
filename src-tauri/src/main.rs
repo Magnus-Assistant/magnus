@@ -11,7 +11,7 @@ mod assistant;
 mod globals;
 mod tools;
 mod model_utils;
-mod tts;
+mod tts_utils;
 
 use dotenv;
 
@@ -115,7 +115,7 @@ async fn create_message(message: String) {
 
     // print and speak
     println!("response: {}", response.clone());
-    tts::speak(response);
+    tts_utils::speak(response);
 }
 
 fn main() {
