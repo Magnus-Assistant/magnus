@@ -100,9 +100,9 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                         match arguments_object {
                             Ok(args) => {
                                 if args.is_empty() {
-                                    tool_output = execute(&function_name, None).await?;
+                                    tool_output = execute(function_name, None).await?;
                                 } else {
-                                    tool_output = execute(&function_name, Some(args)).await?;
+                                    tool_output = execute(function_name, Some(args)).await?;
                                 }
                             }
                             Err(_) => {

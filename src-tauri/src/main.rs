@@ -13,7 +13,7 @@ mod globals;
 mod model_utils;
 mod tools;
 
-use dotenv;
+
 
 struct AppState {
     stream_sender: Option<Sender<String>>,
@@ -76,16 +76,16 @@ fn get_stream_results(state: tauri::State<Arc<Mutex<AppState>>>) -> Option<Strin
         match receiver.recv_timeout(Duration::from_millis(200)) {
             Ok(status) => match status {
                 //if we successfully received a result return it
-                AudioStreamResult::Result(output) => return Some(output),
+                AudioStreamResult::Result(output) => Some(output),
             },
             Err(_) => {
                 println!("Get stream results request timed out... Is the stream completed?");
-                return None;
+                None
             }
         }
     } else {
         println!("Failed to get Receiver for stream results");
-        return None;
+        None
     }
 }
 

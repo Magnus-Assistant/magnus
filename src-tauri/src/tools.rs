@@ -35,13 +35,13 @@ pub async fn get_location_coordinates(location: &str) -> String {
     match coordinates_result {
         Ok(coordinates_response) => match coordinates_response.json::<Value>().await {
             Ok(coordinates) => {
-                return format!(
+                format!(
                     "lat: {}, lng: {}",
                     coordinates["results"][0]["geometry"]["lat"],
                     coordinates["results"][0]["geometry"]["lat"]
                 )
             }
-            Err(e) => return format!("Unable to parse response: {}", e),
+            Err(e) => format!("Unable to parse response: {}", e),
         },
         Err(e) => format!("Request to get user's coordinates failed: {}", e),
     }
@@ -92,15 +92,13 @@ pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {
                                                         );
                                                     }
                                                     _ => {
-                                                        return format!(
-                                                            "Couldn't make day into an object."
-                                                        )
+                                                        return "Couldn't make day into an object.".to_string()
                                                     }
                                                 }
                                             }
                                             the_forecast
                                         }
-                                        _ => return format!("No forecast in response."),
+                                        _ => "No forecast in response.".to_string(),
                                     }
                                 }
                                 Err(e) => format!("Unable to parse forecast response: {}", e),
@@ -126,12 +124,12 @@ pub async fn get_user_coordinates() -> String {
     match user_coordinates_result {
         Ok(user_coordinates_response) => match user_coordinates_response.json::<Value>().await {
             Ok(user_coordinates) => {
-                return format!(
+                format!(
                     "lat: {}, lng: {}",
                     user_coordinates["latitude"], user_coordinates["longitude"]
                 )
             }
-            Err(e) => return format!("Unable to parse response: {}", e),
+            Err(e) => format!("Unable to parse response: {}", e),
         },
         Err(e) => format!("Request to get user's coordinates failed: {}", e),
     }
@@ -251,5 +249,5 @@ pub fn get_time() -> String {
 
 pub fn pass() -> String {
     println!("passing!");
-    format!("")
+    String::new()
 }
