@@ -151,7 +151,7 @@ pub async fn submit_tool_outputs(
     Ok(())
 }
 
-pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Error> {
+pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Error> {
     let response = get_reqwest_client()
         .get(format!(
             "https://api.openai.com/v1/threads/{}/messages",
@@ -168,8 +168,8 @@ pub async fn print_assistant_last_response(thread_id: String) -> Result<(), Erro
         "response: {}",
         format!("{}", messages["data"][0]["content"][0]["text"]["value"])
     );
-
-    Ok(())
+    
+    Ok(messages["data"][0]["content"][0]["text"]["value"].to_string())
 }
 
 pub async fn print_messages(thread_id: String) -> Result<(), Error> {
