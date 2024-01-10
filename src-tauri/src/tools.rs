@@ -9,17 +9,20 @@ use image::{
 };
 use scrap::{Capturer, Display};
 use serde_json::Value;
-use std::{fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration, ptr, ffi::OsString};
+use std::{
+    ffi::OsString, fs::File, io::ErrorKind::WouldBlock, path::Path, ptr, thread::sleep,
+    time::Duration,
+};
 use urlencoding::encode;
 
 #[cfg(target_os = "windows")]
-use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use winapi::um::winbase::{GlobalLock, GlobalUnlock};
-use winapi::um::winuser::{
-    CloseClipboard, GetClipboardData, OpenClipboard, CF_UNICODETEXT,
-};
-
-
+mod windows_specific {
+    pub use std::os::windows::ffi::{OsStrExt, OsStringExt};
+    pub use winapi::um::winbase::{GlobalLock, GlobalUnlock};
+    pub use winapi::um::winuser::{
+        CloseClipboard, GetClipboardData, OpenClipboard, CF_UNICODETEXT,
+    };
+}
 
 pub async fn get_location_coordinates(location: &str) -> String {
     println!("getting {} coordinates!", location);
@@ -92,7 +95,8 @@ pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {
                                                         );
                                                     }
                                                     _ => {
-                                                        return "Couldn't make day into an object.".to_string()
+                                                        return "Couldn't make day into an object."
+                                                            .to_string()
                                                     }
                                                 }
                                             }
@@ -145,22 +149,22 @@ pub fn get_clipboard_text() -> String {
     println!("getting clipboard text! (windows)");
     unsafe {
         // try to open clipboard
-        if OpenClipboard(ptr::null_mut()) == 0 {
+        if windows_specific::OpenClipboard(ptr::null_mut()) == 0 {
             "ERROR: Unable to open clipboard".to_string();
         }
 
         // check if there is clipboard data
-        let clipboard_data = GetClipboardData(CF_UNICODETEXT);
+        let clipboard_data = windows_specific::GetClipboardData(CF_UNICODETEXT);
         if clipboard_data.is_null() {
             "ERROR: No clipboard data".to_string();
-            CloseClipboard();
+            windows_specific::CloseClipboard();
         }
 
         // make sure it doesn't change as we get its value
-        let text_ptr = GlobalLock(clipboard_data) as *const u16;
+        let text_ptr = windows_specific::GlobalLock(clipboard_data) as *const u16;
         if text_ptr.is_null() {
             "ERROR: Unable to lock global memory".to_string();
-            CloseClipboard();
+            windows_specific::CloseClipboard();
         }
 
         // collect data
@@ -180,8 +184,8 @@ pub fn get_clipboard_text() -> String {
         );
 
         // release lock and close clipboard
-        GlobalUnlock(clipboard_data);
-        CloseClipboard();
+        windows_specific::GlobalUnlock(clipboard_data);
+        windows_specific::CloseClipboard();
 
         selected_text
     }
