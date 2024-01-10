@@ -11,6 +11,7 @@ mod assistant;
 mod globals;
 mod tools;
 mod model_utils;
+mod tts_utils;
 
 use dotenv;
 
@@ -109,8 +110,12 @@ async fn create_message(message: String) {
     // run the thread and wait for it to finish
     let _ = assistant::run_and_wait(&run_id, globals::get_thread_id()).await;
 
-    // lets see the response from the assistant
-    let _ = assistant::print_assistant_last_response(globals::get_thread_id()).await;
+    // get response from the assistant
+    let response = assistant::get_assistant_last_response(globals::get_thread_id()).await.unwrap();
+
+    // print and speak
+    println!("response: {}", response.clone());
+    tts_utils::speak(response);
 }
 
 fn main() {
