@@ -103,7 +103,6 @@ fn stop_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
 
 #[tauri::command]
 async fn print_messages() -> Result<(), String> {
-    println!("{}", tools::get_clipboard_text());
     let result = assistant::print_messages(globals::get_thread_id()).await;
 
     match result {
