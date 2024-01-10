@@ -10,7 +10,7 @@ use image::{
 use scrap::{Capturer, Display};
 use serde_json::Value;
 use std::{
-    ffi::OsString, fs::File, io::ErrorKind::WouldBlock, os::windows::ffi::{OsStringExt, OsStrExt}, path::Path, ptr, thread::sleep,
+    ffi::OsString, fs::File, io::ErrorKind::WouldBlock, path::Path, ptr, thread::sleep,
     time::Duration,
 };
 use urlencoding::encode;
@@ -22,6 +22,7 @@ mod windows_specific {
     pub use winapi::um::winuser::{
         CloseClipboard, GetClipboardData, OpenClipboard, CF_UNICODETEXT,
     };
+    pub use std::ffi::OsString;
 }
 
 pub async fn get_location_coordinates(location: &str) -> String {
@@ -178,7 +179,7 @@ pub fn get_clipboard_text() -> String {
 
         // covert text slice to String
         let selected_text = String::from_utf16_lossy(
-            &OsString::from_wide(text_slice)
+            &windows_specific::OsString::from_wide(text_slice)
                 .encode_wide()
                 .collect::<Vec<_>>(),
         );
