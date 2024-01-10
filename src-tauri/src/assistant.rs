@@ -163,11 +163,6 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
         .await?;
 
     let messages = response.json::<serde_json::Value>().await?;
-
-    println!(
-        "response: {}",
-        format!("{}", messages["data"][0]["content"][0]["text"]["value"])
-    );
     
     Ok(messages["data"][0]["content"][0]["text"]["value"].to_string())
 }

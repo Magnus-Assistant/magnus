@@ -10,6 +10,7 @@ pub fn speak(message: String) {
         tts.speak(message, true).unwrap();
         
         while tts.is_speaking().unwrap() {
+            println!("tts is speaking!");
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
     });

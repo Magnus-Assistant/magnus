@@ -23,8 +23,9 @@ pub fn start_model(data_stream: &Vec<i16>) -> String {
     let mut recognizer =
         Recognizer::new(&model, stream_data.config.sample_rate().0 as f32).unwrap();
 
+    recognizer.set_max_alternatives(10);
     recognizer.set_words(true);
-    recognizer.set_partial_words(false);
+    recognizer.set_partial_words(true);
 
     let stop = SystemTime::now();
     match stop.duration_since(start) {
@@ -38,7 +39,7 @@ pub fn start_model(data_stream: &Vec<i16>) -> String {
         recognizer.accept_waveform(sample);
     }
 
-    println!("{:#?}", recognizer.final_result().single().unwrap());
+    //println!("{:#?}", recognizer.final_result().multiple().unwrap());
     let stop = SystemTime::now();
 
     match stop.duration_since(start) {
