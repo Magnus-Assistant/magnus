@@ -16,7 +16,8 @@ pub fn start_model(data_stream: &Vec<i16>) -> String {
     let small_model_path = "./models/vosk-model-small-en-us-0.15/";
 
     #[cfg(target_os = "windows")]
-    let model_path = "C:/Users/schre/Projects/vosk-model-en-us-0.42-gigaspeech/";
+    //let model_path = "C:/Users/schre/Projects/vosk-model-en-us-0.42-gigaspeech/";
+    let small_model_path = "C:/Users/schre/Projects/vosk-model-small-en-us-0.15/";
 
 
     let model = Model::new(small_model_path).unwrap();

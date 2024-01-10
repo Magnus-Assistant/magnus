@@ -239,7 +239,7 @@ async fn execute(
         None => {
             result = match function_name {
                 "get_user_coordinates" => tools::get_user_coordinates().await,
-                "get_clipboard_text" => tools::get_clipboard_text().await,
+                "get_clipboard_text" => tools::get_clipboard_text(),
                 "get_screenshot" => tools::get_screenshot().await,
                 "get_time" => tools::get_time(),
                 "pass" => tools::pass(),
