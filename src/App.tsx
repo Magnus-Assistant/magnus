@@ -31,52 +31,33 @@ function App() {
 
   async function stopStream() {
     await invoke("stop_stream");
-  }
-
-  async function diplayStreamResults() {
-    const result = await invoke("get_stream_results")
-
-    if (typeof result === 'string') {
-      const modelTextElement = document.getElementById('model_output')
-      if (modelTextElement) {
-        modelTextElement.innerText = result;
-      }
-    } else {
-      const modelTextElement = document.getElementById('model_output')
-      if (modelTextElement) {
-        modelTextElement.innerText = "Loading Results...";
-      }
+    let text_output = await getStreamResults();
+    console.log(text_output);
+    if (text_output !== "") {
+      await createMessageThread();
+      await createMessageWithParam(text_output);
     }
   }
 
   async function getStreamResults(): Promise<string> {
-    const result = await invoke("get_stream_results")
-
-    if (typeof result === 'string') {
-      return result;
-    } else {
-      return "";
+    let text = "";
+    let attempts = 0;
+    while (text === null || text === "") {
+      if (attempts > 5) {
+        console.log("Failed to get stream data...")
+        return ""
+      }
+      text = await invoke("get_stream_results")
+      await new Promise((timeout) => setTimeout(timeout, 300));
+      attempts++;
     }
-  }
-
-
-  async function useGPTwithAudio() {
-    const text = await getStreamResults();
-    if (text) {
-      await createMessageThread();
-      await createMessageWithParam(text);
-    } else {
-      console.log("We dont have text yet...")
-    }
+    return text;
   }
 
   return (
     <div className="container">
       <button onClick={startStream}>Start Audio Stream</button>
       <button onClick={stopStream}>Stop Audio Stream</button>
-      <button onClick={diplayStreamResults}>Get Stream Results</button>
-      <button onClick={useGPTwithAudio}>Use ChatGPT With Audio</button>
-      <button onClick={createMessageThread}>Create Message Thread</button>
       <button onClick={printMessages}>Print Messages</button>
       <form onSubmit={createMessage}>
         <input type="text" value={text} onChange={changeText} />
