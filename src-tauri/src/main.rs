@@ -27,7 +27,7 @@ enum AudioStreamResult {
 }
 
 #[tauri::command]
-///Starts an audio input stream
+///Starts an audio input stream and sends the results to a language model
 fn start_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
     //create the sender and recievers so we can add it to state
     let (stream_sender, stream_receiver) = unbounded::<String>();
@@ -92,7 +92,7 @@ fn get_stream_results(state: tauri::State<Arc<Mutex<AppState>>>) -> Option<Strin
 #[tauri::command]
 ///Stops an audio input stream by sending a stop signal
 fn stop_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
-    // try to obtain a sender so we can use it
+    // try to obtain a sender so we can use it to stop the stream
     if let Some(sender) = &state.lock().unwrap().stream_sender {
         let sender_clone = sender.clone();
         if sender_clone.send("stop stream".to_string()).is_err() {
