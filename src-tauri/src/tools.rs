@@ -143,6 +143,7 @@ pub async fn get_user_coordinates() -> String {
 }
 
 #[cfg(target_os = "macos")]
+///returns the contents of the systems clipboard
 pub fn get_clipboard_text() -> String {
     let mut clipboard = ClipboardContext::new().unwrap();
     match clipboard.get_contents() {
@@ -154,6 +155,7 @@ pub fn get_clipboard_text() -> String {
 }
 
 #[cfg(target_os = "windows")]
+///returns the contents of the systems clipboard
 pub fn get_clipboard_text() -> String {
     println!("getting clipboard text! (windows)");
     unsafe {
@@ -200,6 +202,7 @@ pub fn get_clipboard_text() -> String {
     }
 }
 
+///returns a string representation of a base64 screenshot of the primary display
 pub async fn get_screenshot() -> String {
     let display = Display::primary().expect("Couldn't find primary display.");
     let width: u32 = display.width().try_into().unwrap();
