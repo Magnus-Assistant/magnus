@@ -72,6 +72,7 @@ impl InputClip {
         }
     }
 
+    ///creates a sharable InputClip
     fn create_clip() -> Arc<Mutex<Option<InputClip>>> {
         //grab stream config, number of channels and create the clip
         let stream_data = Self::build_config();
@@ -90,12 +91,20 @@ impl InputClip {
             "Using Sample Format of: {}",
             stream_data.config.sample_format()
         );
+        println!(
+            "Using this many Channels: {}",
+            stream_data.config.channels()
+        );
+        println!(
+            "Using buffer size of: {:?}",
+            stream_data.config.buffer_size()
+        );
 
         //return a arc mutex of the created clip
         Arc::new(Mutex::new(Some(clip)))
     }
 
-    ///Creates and writes input audio information to a Vector and stores them in an RecordingHandle
+    ///Creates and writes input audio information to an InputClip and stores them in an RecordingHandle
     pub fn create_stream() -> RecordingHandle {
         let stream_data = Self::build_config();
         let channels = stream_data.config.channels();
@@ -157,7 +166,10 @@ impl InputClip {
             _ => todo!(),
         };
 
-        let _ = stream.play();
+        match stream.play() {
+            Ok(_) => println!("Successfully started audio input stream!"),
+            Err(error) => println!("Failed to start Stream: {}", error),
+        }
 
         //return a recording handle with the stream object and new audio clip
         RecordingHandle { stream, clip }
