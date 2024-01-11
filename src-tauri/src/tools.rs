@@ -3,6 +3,8 @@ use crate::globals::{
 };
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
+use clipboard::ClipboardContext;
+use clipboard::ClipboardProvider;
 use image::{
     codecs::png::PngEncoder, imageops::resize, imageops::FilterType::Triangle, ColorType::Rgba8,
     ImageBuffer, ImageEncoder, Rgba,
@@ -10,20 +12,9 @@ use image::{
 use scrap::{Capturer, Display};
 use serde_json::Value;
 use std::{
-    ffi::OsString, fs::File, io::ErrorKind::WouldBlock, path::Path, ptr, thread::sleep,
-    time::Duration,
+    fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration
 };
 use urlencoding::encode;
-
-#[cfg(target_os = "windows")]
-mod windows_specific {
-    pub use std::os::windows::ffi::{OsStrExt, OsStringExt};
-    pub use winapi::um::winbase::{GlobalLock, GlobalUnlock};
-    pub use winapi::um::winuser::{
-        CloseClipboard, GetClipboardData, OpenClipboard, CF_UNICODETEXT,
-    };
-    pub use std::ffi::OsString;
-}
 
 pub async fn get_location_coordinates(location: &str) -> String {
     println!("getting {} coordinates!", location);
@@ -140,58 +131,18 @@ pub async fn get_user_coordinates() -> String {
     }
 }
 
-#[cfg(target_os = "macos")]
+// returns the contents of the systems clipboard
 pub fn get_clipboard_text() -> String {
-    todo!();
-}
-
-#[cfg(target_os = "windows")]
-pub fn get_clipboard_text() -> String {
-    println!("getting clipboard text! (windows)");
-    unsafe {
-        // try to open clipboard
-        if windows_specific::OpenClipboard(ptr::null_mut()) == 0 {
-            "ERROR: Unable to open clipboard".to_string();
-        }
-
-        // check if there is clipboard data
-        let clipboard_data = windows_specific::GetClipboardData(windows_specific::CF_UNICODETEXT);
-        if clipboard_data.is_null() {
-            "ERROR: No clipboard data".to_string();
-            windows_specific::CloseClipboard();
-        }
-
-        // make sure it doesn't change as we get its value
-        let text_ptr = windows_specific::GlobalLock(clipboard_data) as *const u16;
-        if text_ptr.is_null() {
-            "ERROR: Unable to lock global memory".to_string();
-            windows_specific::CloseClipboard();
-        }
-
-        // collect data
-        let text_slice = std::slice::from_raw_parts(text_ptr, {
-            let mut len = 0;
-            while *text_ptr.offset(len) != 0 {
-                len += 1;
-            }
-            len as usize
-        });
-
-        // covert text slice to String
-        let selected_text = String::from_utf16_lossy(
-            &windows_specific::OsString::from_wide(text_slice)
-                .encode_wide()
-                .collect::<Vec<_>>(),
-        );
-
-        // release lock and close clipboard
-        windows_specific::GlobalUnlock(clipboard_data);
-        windows_specific::CloseClipboard();
-
-        selected_text
+    let mut clipboard = ClipboardContext::new().unwrap();
+    match clipboard.get_contents() {
+        Ok(text) => text,
+        Err(error) => {
+            panic!("Error getting clipboard contents: {}", error);
+        },
     }
 }
 
+// returns a string representation of a base64 screenshot of the primary display
 pub async fn get_screenshot() -> String {
     let display = Display::primary().expect("Couldn't find primary display.");
     let width: u32 = display.width().try_into().unwrap();
