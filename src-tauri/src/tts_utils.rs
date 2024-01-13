@@ -10,6 +10,7 @@ lazy_static! {
 pub fn speak(message: String) {
     match TTS_INSTANCE.as_ref() {
         Ok(tts) => {
+            //since we can't make a borrowed value mutable we have to clone it
             let mut cloned_tts = tts.clone();
             thread::spawn(move || {
                 let voices = cloned_tts.voices().unwrap();
