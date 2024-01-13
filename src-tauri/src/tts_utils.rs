@@ -12,17 +12,17 @@ pub fn speak(message: String) {
         Ok(tts) => {
             let mut cloned_tts = tts.clone();
             thread::spawn(move || {
-                let voices = tts.voices().unwrap();
+                let voices = cloned_tts.voices().unwrap();
 
                 #[cfg(target_os = "macos")]
                 let _ = cloned_tts.set_voice(&voices[33]);
 
                 #[cfg(target_os = "windows")]
-                let _ = tts.set_voice(&voices[2]);
+                let _ = cloned_tts.set_voice(&voices[2]);
 
                 cloned_tts.speak(message, true).unwrap();
 
-                while tts.is_speaking().unwrap() {
+                while cloned_tts.is_speaking().unwrap() {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
                 match cloned_tts.stop() {
