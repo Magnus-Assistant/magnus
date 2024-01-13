@@ -15,7 +15,7 @@ pub fn speak(message: String) {
         tts.speak(message, true).unwrap();
         
         while tts.is_speaking().unwrap() {
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            thread::sleep(std::time::Duration::from_secs(1));
         }
     });
 }

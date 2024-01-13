@@ -4,14 +4,17 @@ use crate::globals::{
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
 use clipboard::{ClipboardContext, ClipboardProvider};
+use dotenv::from_path;
 use image::{
     codecs::png::PngEncoder, imageops::resize, imageops::FilterType::Triangle, ColorType::Rgba8,
     ImageBuffer, ImageEncoder, Rgba,
 };
 use scrap::{Capturer, Display};
 use serde_json::Value;
+use sysinfo::ProcessRefreshKind;
+use core::num;
 use std::{
-    fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration
+    fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration, collections::HashMap
 };
 use urlencoding::encode;
 
@@ -199,58 +202,71 @@ pub async fn get_screenshot() -> String {
 
 pub fn get_system_report() -> String {
     use sysinfo::{
-        Components, Disks, Networks, System,
+        Networks, System, MINIMUM_CPU_UPDATE_INTERVAL, Pid, ProcessRefreshKind, RefreshKind
     };
-    
-    // Please note that we use "new_all" to ensure that all list of
-    // components, network interfaces, disks and users are already
-    // filled!
-    let mut sys = System::new_all();
-    
-    // First we update all information of our `System` struct.
-    sys.refresh_all();
-    
-    println!("=> system:");
-    // RAM and swap information:
-    println!("total memory: {} bytes", sys.total_memory());
-    println!("used memory : {} bytes", sys.used_memory());
-    println!("total swap  : {} bytes", sys.total_swap());
-    println!("used swap   : {} bytes", sys.used_swap());
-    
-    // Display system information:
-    println!("System name:             {:?}", System::name());
-    println!("System kernel version:   {:?}", System::kernel_version());
-    println!("System OS version:       {:?}", System::os_version());
-    println!("System host name:        {:?}", System::host_name());
-    
-    // Number of CPUs:
-    println!("NB CPUs: {}", sys.cpus().len());
-    
-    // Display processes ID, name na disk usage:
-    for (pid, process) in sys.processes() {
-        println!("[{pid}] {} {:?}", process.name(), process.disk_usage());
+
+    // get system description
+    let hostname = System::host_name().unwrap_or("".to_string());
+    let system_name = System::name().unwrap_or("".to_string());
+    let os_version = System::os_version().unwrap_or("".to_string());
+    let system_description = format!("Hostname: {hostname}, OS: {system_name} {os_version}");
+    println!("{}", system_description);
+
+    // get top 3 apps in cpu usage
+    // get top 3 apps in RAM usage
+    // get network speed
+    let specifics = RefreshKind::new()
+        .with_processes(ProcessRefreshKind::new()
+            .with_cpu()
+            .with_memory());
+    let mut system = System::new_with_specifics(specifics);
+    let num_cpus = system.cpus().len();
+
+    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+    system.refresh_specifics(specifics);
+
+    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+    system.refresh_specifics(specifics);
+    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+    system.refresh_specifics(specifics);
+    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+    system.refresh_specifics(specifics);
+    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+    system.refresh_specifics(specifics);
+    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+    system.refresh_specifics(specifics);
+
+    let mut memories = HashMap::new();
+    // for (_, process) in processes {
+    //     println!("{} {}", process.name(), process.virtual_memory());
+    //     *memories.entry(process.name()).or_insert(process.virtual_memory()) += process.virtual_memory();
+    // }
+
+    for (_, process) in system.processes() {
+        memories.entry(process.name())
+            .and_modify(|e| *e += process.virtual_memory())
+            .or_insert(process.virtual_memory());
     }
-    
-    // We display all disks' information:
-    println!("=> disks:");
-    let disks = Disks::new_with_refreshed_list();
-    for disk in &disks {
-        println!("{disk:?}");
+
+    let mut vec: Vec<(&&str, &u64)> = memories.iter().collect();
+
+    vec.sort_by(|a, b| b.1.cmp(a.1));
+
+    // Take the first 5 elements
+    let top_5: Vec<(&&str, &u64)> = vec.into_iter().take(5).collect();
+
+    // Print the resulting hashmap
+    for (key, pair) in &top_5 {
+        let value_in_mb = **pair as f32 / 1024.0 / 1024.0;
+        println!("{}: {}", key, value_in_mb);
     }
-    
+
     // Network interfaces name, data received and data transmitted:
-    let networks = Networks::new_with_refreshed_list();
-    println!("=> networks:");
-    for (interface_name, data) in &networks {
-        println!("{interface_name}: {}/{} B", data.received(), data.transmitted());
-    }
-    
-    // Components temperature:
-    let components = Components::new_with_refreshed_list();
-    println!("=> components:");
-    for component in &components {
-        println!("{component:?}");
-    }
+    // let networks = Networks::new_with_refreshed_list();
+    // println!("=> networks:");
+    // for (interface_name, data) in &networks {
+    //     println!("{interface_name}: {}/{} B", data.received(), data.transmitted());
+    // }
 
     return "".to_string();
 }
