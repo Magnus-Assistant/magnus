@@ -103,7 +103,7 @@ fn stop_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
 
 #[tauri::command]
 async fn get_system_report() {
-    let _ = tools::get_system_report();
+    let _ = tools::get_system_report().await;
 }
 
 #[tauri::command]

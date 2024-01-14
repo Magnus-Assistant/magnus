@@ -4,17 +4,17 @@ use crate::globals::{
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
 use clipboard::{ClipboardContext, ClipboardProvider};
-use dotenv::from_path;
 use image::{
     codecs::png::PngEncoder, imageops::resize, imageops::FilterType::Triangle, ColorType::Rgba8,
     ImageBuffer, ImageEncoder, Rgba,
 };
 use scrap::{Capturer, Display};
 use serde_json::Value;
-use sysinfo::ProcessRefreshKind;
-use core::num;
 use std::{
     fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration, collections::HashMap
+};
+use sysinfo::{
+    Networks, System, MINIMUM_CPU_UPDATE_INTERVAL
 };
 use urlencoding::encode;
 
@@ -200,75 +200,78 @@ pub async fn get_screenshot() -> String {
     }
 }
 
-pub fn get_system_report() -> String {
-    use sysinfo::{
-        Networks, System, MINIMUM_CPU_UPDATE_INTERVAL, Pid, ProcessRefreshKind, RefreshKind
-    };
+pub async fn get_system_report() -> String {
+    let mut system_report = String::new();
 
     // get system description
     let hostname = System::host_name().unwrap_or("".to_string());
     let system_name = System::name().unwrap_or("".to_string());
     let os_version = System::os_version().unwrap_or("".to_string());
-    let system_description = format!("Hostname: {hostname}, OS: {system_name} {os_version}");
-    println!("{}", system_description);
+    system_report.push_str(&format!(
+        "Hostname: {}\nOS: {} {}\n",
+        hostname,
+        system_name,
+        os_version,
+    ));
 
-    // get top 3 apps in cpu usage
-    // get top 3 apps in RAM usage
-    // get network speed
-    let specifics = RefreshKind::new()
-        .with_processes(ProcessRefreshKind::new()
-            .with_cpu()
-            .with_memory());
-    let mut system = System::new_with_specifics(specifics);
+    // check for network connections
+    let networks = Networks::new_with_refreshed_list();
+    if !networks.is_empty() {
+        let connections: Vec<_> = networks.iter().map(|(s, _)| s.as_str()).collect();
+        system_report.push_str(&format!(
+            "Network connections: {:?}\n",
+            connections.join(", ")
+        ));
+    }
+    else {
+        system_report.push_str("No network connection!\n");
+    }
+    
+    // get processes with info on cpu and ram usage
+    let mut system = System::new_all();
     let num_cpus = system.cpus().len();
+    let mut processes: HashMap<String, (f32, u64)> = HashMap::new();
 
+    // refreshes are required to gather accurate results
+    system.refresh_all();
     sleep(MINIMUM_CPU_UPDATE_INTERVAL);
-    system.refresh_specifics(specifics);
+    system.refresh_all();
 
-    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
-    system.refresh_specifics(specifics);
-    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
-    system.refresh_specifics(specifics);
-    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
-    system.refresh_specifics(specifics);
-    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
-    system.refresh_specifics(specifics);
-    sleep(MINIMUM_CPU_UPDATE_INTERVAL);
-    system.refresh_specifics(specifics);
+    // collect process usage and group by process name
+    for process in system.processes().values() {
+        let entry = processes.entry(process.name().to_string()).or_insert((0.0, 0));
+        entry.0 += process.cpu_usage();
+        entry.1 += process.memory();
+    }
+    let mut processes_sorted: Vec<(String, (f32, u64))> = processes.into_iter().collect();
 
-    let mut memories = HashMap::new();
-    // for (_, process) in processes {
-    //     println!("{} {}", process.name(), process.virtual_memory());
-    //     *memories.entry(process.name()).or_insert(process.virtual_memory()) += process.virtual_memory();
-    // }
-
-    for (_, process) in system.processes() {
-        memories.entry(process.name())
-            .and_modify(|e| *e += process.virtual_memory())
-            .or_insert(process.virtual_memory());
+    // descending order by cpu usage
+    processes_sorted.sort_by(|a, b| b.1.0.partial_cmp(&a.1.0).unwrap());
+    system_report.push_str("\nTop 5 processes by CPU usage:\n");
+    for (index, (name, (cpu, _))) in processes_sorted.iter().take(5).enumerate() {
+        system_report.push_str(&format!(
+            "{}. {} {:.2}%\n",
+            index + 1,
+            name,
+            cpu / num_cpus as f32
+        ));
     }
 
-    let mut vec: Vec<(&&str, &u64)> = memories.iter().collect();
-
-    vec.sort_by(|a, b| b.1.cmp(a.1));
-
-    // Take the first 5 elements
-    let top_5: Vec<(&&str, &u64)> = vec.into_iter().take(5).collect();
-
-    // Print the resulting hashmap
-    for (key, pair) in &top_5 {
-        let value_in_mb = **pair as f32 / 1024.0 / 1024.0;
-        println!("{}: {}", key, value_in_mb);
+    // descending order by ram usage
+    processes_sorted.sort_by(|a, b| b.1.1.cmp(&a.1.1));
+    system_report.push_str("\nTop 5 processes by RAM usage:\n");
+    for (index, (name, (_, memory))) in processes_sorted.iter().take(5).enumerate() {
+        system_report.push_str(&format!(
+            "{}. {} {:.2} MB\n",
+            index + 1,
+            name,
+            memory / 1024 / 1024
+        ));
     }
 
-    // Network interfaces name, data received and data transmitted:
-    // let networks = Networks::new_with_refreshed_list();
-    // println!("=> networks:");
-    // for (interface_name, data) in &networks {
-    //     println!("{interface_name}: {}/{} B", data.received(), data.transmitted());
-    // }
+    println!("SYSTEM REPORT:\n---------------------\n{system_report}");
 
-    return "".to_string();
+    system_report.to_string()
 }
 
 pub fn get_time() -> String {
