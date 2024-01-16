@@ -102,6 +102,11 @@ fn stop_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
 }
 
 #[tauri::command]
+async fn get_system_report() {
+    let _ = tools::get_system_report().await;
+}
+
+#[tauri::command]
 async fn print_messages() -> Result<(), String> {
     let result = assistant::print_messages(globals::get_thread_id()).await;
 
@@ -177,6 +182,7 @@ fn main() {
             create_message_thread,
             create_message,
             print_messages,
+            get_system_report,
             get_stream_results
         ])
         .run(tauri::generate_context!())

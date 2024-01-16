@@ -24,7 +24,7 @@ pub fn speak(message: String) {
                 cloned_tts.speak(message, true).unwrap();
 
                 while cloned_tts.is_speaking().unwrap() {
-                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    thread::sleep(std::time::Duration::from_secs(1));
                 }
                 match cloned_tts.stop() {
                     Ok(_) => println!("Successfully stopped TTS"),

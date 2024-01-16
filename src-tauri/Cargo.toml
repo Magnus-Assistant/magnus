@@ -35,8 +35,10 @@ urlencoding = "2.1.3"
 scrap = "0.5.0"
 image = "0.24.7"
 base64 = "0.21.5"
+sysinfo = { version = "0.30.5", features = ["apple-app-store"] }
 tts = "0.25.6"
 clipboard = "0.5.0"
+speedtest-rs = "0.1.4"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
