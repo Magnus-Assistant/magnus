@@ -14,7 +14,6 @@ mod model_utils;
 mod tools;
 mod tts_utils;
 
-
 struct AppState {
     stream_sender: Option<Sender<String>>,
     result_sender: Option<Sender<AudioStreamResult>>,
@@ -25,6 +24,9 @@ struct AppState {
 enum AudioStreamResult {
     Result(String),
 }
+
+mod audio_input;
+mod transcription;
 
 #[tauri::command]
 ///Starts an audio input stream and sends the results to a language model
@@ -64,6 +66,13 @@ fn start_stream(state: tauri::State<Arc<Mutex<AppState>>>) {
         result_sender_clone.send(final_result).unwrap();
     });
 }
+
+
+// start stream (on app start)
+// loop:
+// wait 200ms
+// samples = get audio samples (clear buffer)
+// if recognizer.accept_waveform(samples) == Finalized -> get stream results -> message to assisstant
 
 #[tauri::command]
 ///returns the string output of the vosk model
@@ -169,15 +178,39 @@ fn main() {
         result_receiver: None,
     }));
 
+    let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = unbounded::<Vec<i16>>();
+    let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = unbounded::<String>();
+
+    // audio input
+    let audio_sender = a_sender.clone();
+    thread::spawn(move || {
+        audio_input::start_audio_stream(audio_sender);
+    });
+
+    // transcription
+    let transcription_sender = t_sender.clone();
+    thread::spawn(move || {
+        transcription::run(audio_receiver, transcription_sender);
+    });
+
+    // assistant
+    thread::spawn(move || {
+        loop {
+            if let Ok(data) = transcription_receiver.recv() {
+                println!("{data:?}");
+            }
+        }
+    });
+    
     tauri::Builder::default()
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
-            start_stream,
-            stop_stream,
             create_message_thread,
             create_message,
-            print_messages,
-            get_stream_results
+            get_stream_results,
+            start_stream,
+            stop_stream,
+            print_messages
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
