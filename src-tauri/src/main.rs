@@ -6,7 +6,6 @@ use std::thread;
 
 mod assistant;
 mod globals;
-mod model_utils;
 mod tools;
 mod tts_utils;
 mod audio_input;
