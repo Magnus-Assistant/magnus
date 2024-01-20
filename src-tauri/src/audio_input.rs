@@ -1,8 +1,6 @@
 use crossbeam::channel::Sender;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Sample;
-use std::thread;
-use std::time::Duration;
 
 /*
 TODO?
@@ -10,7 +8,7 @@ maybe needs linear scaling??
 maybe should collect a bit of audio data and send periodically?
 */
 
-pub fn start_audio_stream(audio_sender: Sender<Vec<i16>>) {
+pub fn run(audio_sender: Sender<Vec<i16>>) {
     let host = cpal::default_host();
 
     let device = host.default_input_device()
@@ -37,10 +35,7 @@ pub fn start_audio_stream(audio_sender: Sender<Vec<i16>>) {
         for frame in data.chunks(channels.into()) {
             buffer.push(frame[0]);
         }
-        match audio_sender.send(convert_to_i16(&buffer)) {
-            Ok(_) => {},
-            Err(e) => println!("SendError: {e:#?}")
-        }
+        audio_sender.send(convert_to_i16(&buffer)).unwrap();
     }
     
     let stream = match config.sample_format() {
@@ -78,9 +73,7 @@ pub fn start_audio_stream(audio_sender: Sender<Vec<i16>>) {
         Err(error) => println!("Failed to start audio stream: {}", error),
     }
 
-    loop {
-        thread::sleep(Duration::from_secs(1));
-    }
+    loop {}
 }
 
 fn convert_to_i16(data: &Vec<f32>) -> Vec<i16> {

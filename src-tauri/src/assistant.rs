@@ -1,8 +1,37 @@
-use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client};
-use crate::tools;
+use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
+use crate::{tools, tts_utils};
 use reqwest::Error;
 use std::thread;
 use std::time::Duration;
+use crossbeam::channel::Receiver;
+
+pub async fn run(transcription_receiver: Receiver<String>) {
+    loop {
+        if let Ok(transcription) = transcription_receiver.try_recv() {
+            let message = serde_json::json!({
+                "role": "user",
+                "content": transcription
+            });
+
+            let _ = create_message(message, get_thread_id()).await;
+            println!("User: {}", transcription.clone());
+
+            let run_id: String = create_run(get_thread_id())
+                .await
+                .unwrap_or_else(|err| {
+                    panic!("Error occurred: {:?}", err);
+                });
+            
+            let _ = run_and_wait(&run_id, get_thread_id()).await;
+
+            let response = get_assistant_last_response(get_thread_id()).await.unwrap();
+
+            // print and speak
+            println!("Magnus: {}", response.clone());
+            tts_utils::speak(response);
+        }
+    }
+} 
 
 pub async fn create_message_thread() -> Result<String, Error> {
     let response = get_reqwest_client()
