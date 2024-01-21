@@ -35,7 +35,7 @@ pub fn run(audio_sender: Sender<Vec<i16>>) {
         for frame in data.chunks(channels.into()) {
             buffer.push(frame[0]);
         }
-        audio_sender.send(convert_to_i16(&buffer)).unwrap();
+        audio_sender.try_send(convert_to_i16(&buffer)).ok();
     }
     
     let stream = match config.sample_format() {

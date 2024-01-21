@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{bounded, Receiver, Sender};
 use std::thread;
 
 mod assistant;
@@ -18,7 +18,7 @@ async fn create_message_thread() -> String {
         Ok(thread_id) => {
             globals::set_thread_id(thread_id.clone().trim_matches('\"').to_string());
             println!(
-                "thread: {}\n---------------------------------------",
+                "Successfully created thread: {}",
                 globals::get_thread_id()
             );
             thread_id
@@ -36,7 +36,6 @@ async fn create_message(message: String) {
 
     // add message to the thread of messages
     let _ = assistant::create_message(data, globals::get_thread_id()).await;
-    println!("message: {}", message);
 
     // create a run id
     let run_id: String = assistant::create_run(globals::get_thread_id())
@@ -44,7 +43,6 @@ async fn create_message(message: String) {
         .unwrap_or_else(|err| {
             panic!("Error occurred: {:?}", err);
         });
-    // println!("run: {}", run_id);
 
     // run the thread and wait for it to finish
     let _ = assistant::run_and_wait(&run_id, globals::get_thread_id()).await;
@@ -52,16 +50,15 @@ async fn create_message(message: String) {
     // get response from the assistant
     let response = assistant::get_assistant_last_response(globals::get_thread_id()).await.unwrap();
 
-    // print and speak
-    println!("response: {}", response.clone());
+    // speak
     tts_utils::speak(response);
 }
 
 fn main() {
     dotenv::dotenv().ok();
-     
-    let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = unbounded::<Vec<i16>>();
-    let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = unbounded::<String>();
+    
+    let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
+    let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
     // audio input
     let audio_sender = a_sender.clone();
@@ -82,6 +79,10 @@ fn main() {
         assistant::run(transcription_receiver).await;
     });
 
+    // let rt = tokio::runtime::Runtime::new().unwrap();
+    // rt.block_on(async {
+    //     create_message_thread().await;
+    // });
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             create_message

@@ -7,6 +7,7 @@ use crossbeam::channel::Receiver;
 
 pub async fn run(transcription_receiver: Receiver<String>) {
     loop {
+        // receive speech transcription from vosk
         if let Ok(transcription) = transcription_receiver.try_recv() {
             let message = serde_json::json!({
                 "role": "user",
@@ -14,7 +15,6 @@ pub async fn run(transcription_receiver: Receiver<String>) {
             });
 
             let _ = create_message(message, get_thread_id()).await;
-            println!("User: {}", transcription.clone());
 
             let run_id: String = create_run(get_thread_id())
                 .await
@@ -25,9 +25,8 @@ pub async fn run(transcription_receiver: Receiver<String>) {
             let _ = run_and_wait(&run_id, get_thread_id()).await;
 
             let response = get_assistant_last_response(get_thread_id()).await.unwrap();
-
-            // print and speak
-            println!("Magnus: {}", response.clone());
+            
+            // speak response
             tts_utils::speak(response);
         }
     }
@@ -59,7 +58,7 @@ pub async fn create_message(message: serde_json::Value, thread_id: String) -> Re
         .json(&message)
         .send()
         .await?;
-
+    println!("User: {}", message["content"]);
     Ok(())
 }
 
@@ -192,8 +191,11 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
         .await?;
 
     let messages = response.json::<serde_json::Value>().await?;
+
+    let assistant_response = messages["data"][0]["content"][0]["text"]["value"].to_string();
+    println!("Magnus: {assistant_response}");
     
-    Ok(messages["data"][0]["content"][0]["text"]["value"].to_string())
+    Ok(assistant_response)
 }
 
 pub async fn print_messages(thread_id: String) -> Result<(), Error> {
