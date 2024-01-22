@@ -1,11 +1,10 @@
 use crossbeam::channel::Sender;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::Sample;
+use cpal::{Sample,FromSample};
 
 /*
 TODO?
 maybe needs linear scaling??
-maybe should collect a bit of audio data and send periodically?
 */
 
 pub fn run(audio_sender: Sender<Vec<i16>>) {
@@ -20,53 +19,52 @@ pub fn run(audio_sender: Sender<Vec<i16>>) {
     let config = supported_configs_range.next()
         .expect("No supported config?!")
         .with_max_sample_rate();
+    println!("{config:#?}");
 
-    let config_clone = config.clone();
+    let error_callback = move |err| println!("Error on stream: {}", err);
 
-    let error_callback = move |err| {
-        println!("Error on stream: {}", err);
-    };
-
-    fn write_data<T: Sample>(data: &[f32], channels: u16, audio_sender: Sender<Vec<i16>>)
+    fn write_data<T: Sample>(data: &[T], channels: u16, audio_sender: Sender<Vec<i16>>)
     where
-        T: cpal::Sample,
+        i16: FromSample<T>
     {
-        let mut buffer = vec![];
+        let mut buffer: Vec<i16> = vec![];
         for frame in data.chunks(channels.into()) {
-            buffer.push(frame[0]);
+            buffer.push(frame[0].to_sample::<i16>());
         }
-        audio_sender.try_send(convert_to_i16(&buffer)).ok();
+
+        audio_sender.try_send(buffer).ok();
     }
-    
+
+    // let stream = device
+    //     .build_input_stream(
+    //         &config.clone().into(),
+    //         move |data: ?, _: &_| write_data(data, config.channels(), audio_sender.clone()),
+    //         error_callback,
+    //         None,
+    //     )
+    //     .expect("Failed to build audio stream!");
+
     let stream = match config.sample_format() {
-        cpal::SampleFormat::I16 => device
-            .build_input_stream(
-                &config_clone.into(),
-                move |data, _: &_| write_data::<i16>(data, config.channels(), audio_sender.clone()),
-                error_callback,
-                None,
-            )
-            .expect("Failed to start Sample format I16"),
-        cpal::SampleFormat::U16 => device
-            .build_input_stream(
-                &config_clone.into(),
-                move |data, _: &_| write_data::<u16>(data, config.channels(), audio_sender.clone()),
-                error_callback,
-                None,
-            )
-            .expect("Failed to start Sample format U16"),
-        cpal::SampleFormat::F32 => {
-            device
-            .build_input_stream(
-                &config_clone.into(),
-                move |data, _: &_| write_data::<f32>(data, config.channels(), audio_sender.clone()),
-                error_callback,
-                None,
-            )
-            .expect("Failed to start Sample format F32")
-        }
-        _ => todo!(),
-    };
+        cpal::SampleFormat::F32 => device.build_input_stream(
+            &config.clone().into(),
+            move |data: &[f32], _: &_| write_data(data, config.channels(), audio_sender.clone()),
+            error_callback,
+            None
+        ),
+        cpal::SampleFormat::I16 => device.build_input_stream(
+            &config.clone().into(),
+            move |data: &[i16], _: &_| write_data(data, config.channels(), audio_sender.clone()),
+            error_callback,
+            None
+        ),
+        cpal::SampleFormat::U16 => device.build_input_stream(
+            &config.clone().into(),
+            move |data: &[u16], _: &_| write_data(data, config.channels(), audio_sender.clone()),
+            error_callback,
+            None
+        ),
+        _ => panic!()
+    }.expect("Failed to build audio stream!");
 
     match stream.play() {
         Ok(_) => println!("Successfully started audio stream!"),
@@ -74,15 +72,4 @@ pub fn run(audio_sender: Sender<Vec<i16>>) {
     }
 
     loop {}
-}
-
-fn convert_to_i16(data: &Vec<f32>) -> Vec<i16> {
-    // data.iter().map(|&f| (f as i16)).collect()
-    // (data * i16::MAX as f32).clamp(-i16::MAX as f32, i16::MAX as f32) as i16
-    let result: Vec<i16> = data
-        .iter()
-        .map(|&value| (value * i16::MAX as f32).clamp(-i16::MAX as f32, i16::MAX as f32) as i16)
-        .collect();
-
-    result
 }
