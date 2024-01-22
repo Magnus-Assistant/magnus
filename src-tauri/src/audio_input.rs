@@ -1,25 +1,25 @@
 use crossbeam::channel::Sender;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Sample,FromSample};
+use cpal::{Device, Sample, FromSample};
 
 /*
 TODO?
 maybe needs linear scaling??
 */
 
-pub fn run(audio_sender: Sender<Vec<i16>>) {
+pub fn get_default_input_device() -> Device {
     let host = cpal::default_host();
 
-    let device = host.default_input_device()
-        .expect("No output device available!");
+    if let Some(device) = host.default_input_device() {
+        device
+    }
+    else {
+         panic!("No default input device!") 
+    }
+}
 
-    let mut supported_configs_range = device.supported_input_configs()
-        .expect("Error while querying configs!");
-
-    let config = supported_configs_range.next()
-        .expect("No supported config?!")
-        .with_max_sample_rate();
-    println!("{config:#?}");
+pub fn run(audio_sender: Sender<Vec<i16>>, device: Device) {
+    let config = device.default_input_config().unwrap();
 
     let error_callback = move |err| println!("Error on stream: {}", err);
 
@@ -34,15 +34,6 @@ pub fn run(audio_sender: Sender<Vec<i16>>) {
 
         audio_sender.try_send(buffer).ok();
     }
-
-    // let stream = device
-    //     .build_input_stream(
-    //         &config.clone().into(),
-    //         move |data: ?, _: &_| write_data(data, config.channels(), audio_sender.clone()),
-    //         error_callback,
-    //         None,
-    //     )
-    //     .expect("Failed to build audio stream!");
 
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => device.build_input_stream(

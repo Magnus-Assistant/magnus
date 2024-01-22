@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cpal::traits::DeviceTrait;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use std::thread;
 
@@ -59,17 +60,19 @@ fn main() {
     
     let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
     let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
+    let default_input_device = audio_input::get_default_input_device();
+    let audio_config = default_input_device.default_input_config().unwrap();
 
     // audio input
     let audio_sender = a_sender.clone();
     thread::spawn(move || {
-        audio_input::run(audio_sender);
+        audio_input::run(audio_sender, default_input_device);
     });
 
     // transcription
     let transcription_sender = t_sender.clone();
     thread::spawn(move || {
-        transcription::run(audio_receiver, transcription_sender);
+        transcription::run(audio_receiver, transcription_sender, audio_config.sample_rate());
     });
 
     // assistant
@@ -79,10 +82,6 @@ fn main() {
         assistant::run(transcription_receiver).await;
     });
 
-    // let rt = tokio::runtime::Runtime::new().unwrap();
-    // rt.block_on(async {
-    //     create_message_thread().await;
-    // });
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             create_message
