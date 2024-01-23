@@ -32,7 +32,14 @@ pub fn run(audio_sender: Sender<Vec<i16>>, device: Device) {
             buffer.push(frame[0].to_sample::<i16>());
         }
 
-        audio_sender.try_send(buffer).ok();
+        match audio_sender.try_send(buffer) {
+            Ok(_) => {},
+            Err(e) => {
+                if e.is_disconnected() {
+                    panic!("Audio channel disconnected!")
+                }
+            }
+        }
     }
 
     let stream = match config.sample_format() {
