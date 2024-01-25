@@ -60,13 +60,14 @@ fn main() {
     
     let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
     let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
-    let default_input_device = audio_input::get_default_input_device();
+
+    let default_input_device = audio_input::get_audio_input_device();
     let audio_config = default_input_device.default_input_config().unwrap();
 
     // audio input
     let audio_sender = a_sender.clone();
     thread::spawn(move || {
-        audio_input::run(audio_sender, default_input_device);
+        audio_input::run(audio_sender);
     });
 
     // transcription
