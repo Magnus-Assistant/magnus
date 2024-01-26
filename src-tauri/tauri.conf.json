@@ -20,7 +20,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev"
+      "identifier": "com.magnus.dev"
     },
     "security": {
       "csp": null
@@ -29,7 +29,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "magnus",
+        "title": "Magnus",
         "width": 800,
         "height": 600
       }
