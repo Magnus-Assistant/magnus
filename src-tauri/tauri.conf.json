@@ -21,7 +21,8 @@
       "active": true,
       "targets": "all",
       "identifier": "com.magnus.dev",
-      "icon": ["./icons/icon.png", "./icons/icon.ico"]
+      "icon": ["./icons/icon.png", "./icons/icon.ico"],
+      "resources": ["./libgcc_s_seh-1.dll", "./libstdc++-6.dll", "./libvosk.dll", "./libvosk.dylib", "./libvosk.lib", "./libwinpthread-1.dll"]
     },
     "security": {
       "csp": null
