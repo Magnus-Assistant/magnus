@@ -24,11 +24,5 @@ dist-ssr
 *.sw?
 *.env
 
-src-tauri/build.rs
-src-tauri/libvosk.dylib
-src-tauri/vosk_api.h
-src-tauri/models/*
-
+src-tauri/models/vosk-model-en-us-0.42-gigaspeech
 src-tauri/.env
-src-tauri/*.dll
-src-tauri/*.lib

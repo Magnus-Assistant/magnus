@@ -2,7 +2,3 @@
 # will have compiled files and executables
 /target/
 .env
-*.lib
-*.dll
-*.h
-build.rs
