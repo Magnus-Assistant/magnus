@@ -3,13 +3,8 @@ use vosk::{DecodingState, Model, Recognizer};
 use cpal::SampleRate;
 
 pub fn run(audio_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
-    #[cfg(target_os = "macos")]
-    //let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-    let model_path = "./models/vosk-model-small-en-us-0.15/";
-
-    #[cfg(target_os = "windows")]
-    // let model_path = "C:/Users/schre/Projects/vosk-model-en-us-0.42-gigaspeech/";
-    let model_path = "C:/Users/schre/Projects/vosk-model-small-en-us-0.15/";
+    let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+    // let model_path = "./models/vosk-model-small-en-us-0.15/";
 
     let model = Model::new(model_path).unwrap();
     let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
