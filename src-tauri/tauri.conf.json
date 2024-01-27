@@ -21,7 +21,7 @@
       "active": true,
       "targets": "all",
       "identifier": "com.magnus.dev",
-      "icon": ["./icons/icon.ico", "./icons/icon.png", "icon.ico", "icon.png"]
+      "icon": ["./icons/icon.png", "./icons/icon.ico"]
     },
     "security": {
       "csp": null

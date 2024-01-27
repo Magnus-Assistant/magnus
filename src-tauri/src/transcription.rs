@@ -1,15 +1,18 @@
 use crossbeam::channel::{Receiver, Sender};
 use vosk::{DecodingState, Model, Recognizer};
 use cpal::SampleRate;
+use std::env;
 
 pub fn run(audio_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
-    #[cfg(target_os = "macos")]
-    //let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+    // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
     let model_path = "./models/vosk-model-small-en-us-0.15/";
 
-    #[cfg(target_os = "windows")]
-    // let model_path = "C:/Users/schre/Projects/vosk-model-en-us-0.42-gigaspeech/";
-    let model_path = "C:/Users/schre/Projects/vosk-model-small-en-us-0.15/";
+    if let Ok(current_dir) = env::current_dir() {
+        println!("Current directory: {}", current_dir.display());
+    } else {
+        eprintln!("Failed to get the current directory");
+    }
+
 
     let model = Model::new(model_path).unwrap();
     let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
