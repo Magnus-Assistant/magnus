@@ -23,18 +23,11 @@ pub fn speak(message: String) {
 
                 cloned_tts.speak(message, true).unwrap();
 
-                while cloned_tts.is_speaking().unwrap() {
+                while tts.is_speaking().unwrap() {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
-                match cloned_tts.stop() {
-                    Ok(_) => println!("Successfully stopped TTS"),
-                    Err(e) => println!("Failed to stop TTS: {}", e),
-                }
-                drop(cloned_tts);
             });
-        }
-        Err(e) => {
-            println!("TTS Error: {}", e)
-        }
+        },
+        Err(e) => panic!("Failed to get static tts ref! {e}")
     }
 }
