@@ -1,11 +1,10 @@
 use crossbeam::channel::{Receiver, Sender};
 use vosk::{DecodingState, Model, Recognizer};
 use cpal::SampleRate;
-use std::env;
 
 pub fn run(audio_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
-    let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-    // let model_path = "./models/vosk-model-small-en-us-0.15/";
+    // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+    let model_path = "./models/vosk-model-small-en-us-0.15/";
 
     let model = Model::new(model_path).unwrap();
     let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
