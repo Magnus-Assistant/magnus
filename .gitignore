@@ -25,5 +25,4 @@ dist-ssr
 *.env
 
 src-tauri/models/vosk-model-en-us-0.42-gigaspeech
-
 src-tauri/.env

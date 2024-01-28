@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [macos-latest, windows-latest]
+
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -47,4 +48,3 @@ jobs:
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: false
           prerelease: true
-
