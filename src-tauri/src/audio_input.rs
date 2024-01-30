@@ -1,27 +1,32 @@
-use crossbeam::channel::Sender;
+use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, Sample, FromSample};
+use cpal::{BuildStreamError, Device, FromSample, Sample, StreamError};
+use std::thread;
+use std::time::Duration;
+use std::error::Error;
 
-/*
-TODO?
-maybe needs linear scaling??
-*/
-
-pub fn get_default_input_device() -> Device {
+pub fn get_audio_input_device() -> Device {
     let host = cpal::default_host();
 
-    if let Some(device) = host.default_input_device() {
-        device
-    }
-    else {
-         panic!("No default input device!") 
-    }
+    let audio_input_device: Device = loop {
+        match host.default_input_device() {
+            Some(device) => break device,
+            None => thread::sleep(Duration::from_secs(1))
+        }
+        println!("Looking for input device.")
+    };
+    println!("Found!");
+
+    audio_input_device
 }
 
-pub fn run(audio_sender: Sender<Vec<i16>>, device: Device) {
+fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
     let config = device.default_input_config().unwrap();
+    let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
 
-    let error_callback = move |err| println!("Error on stream: {}", err);
+    fn error_callback(e: StreamError, error_sender: Sender<StreamError>) {
+        error_sender.send(e).ok();
+    }
 
     fn write_data<T: Sample>(data: &[T], channels: u16, audio_sender: Sender<Vec<i16>>)
     where
@@ -46,28 +51,53 @@ pub fn run(audio_sender: Sender<Vec<i16>>, device: Device) {
         cpal::SampleFormat::F32 => device.build_input_stream(
             &config.clone().into(),
             move |data: &[f32], _: &_| write_data(data, config.channels(), audio_sender.clone()),
-            error_callback,
+            move |e| error_callback(e, error_sender.clone()),
             None
         ),
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.clone().into(),
             move |data: &[i16], _: &_| write_data(data, config.channels(), audio_sender.clone()),
-            error_callback,
+            move |e| error_callback(e, error_sender.clone()),
             None
         ),
         cpal::SampleFormat::U16 => device.build_input_stream(
             &config.clone().into(),
             move |data: &[u16], _: &_| write_data(data, config.channels(), audio_sender.clone()),
-            error_callback,
+            move |e| error_callback(e, error_sender.clone()),
             None
         ),
         _ => panic!()
-    }.expect("Failed to build audio stream!");
+    }.expect("Failed to build stream!");
 
     match stream.play() {
         Ok(_) => println!("Successfully started audio stream!"),
         Err(error) => println!("Failed to start audio stream: {}", error),
     }
 
-    loop {}
+    loop {
+        if let Ok(stream_error) = error_receiver.try_recv() {
+            return Box::new(stream_error)
+        }
+    }
+}
+
+pub fn run(audio_sender: Sender<Vec<i16>>) {
+    loop {
+        let audio_input_device = get_audio_input_device();
+        let error = run_stream(audio_sender.clone(), audio_input_device);
+        
+        // many different potential errors can occur, maybe we handle them each differently??
+        if let Some(stream_error) = error.downcast_ref::<StreamError>() {
+            match stream_error {
+                StreamError::DeviceNotAvailable => println!("Device not available error!"),
+                StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
+            }
+        }
+        else if let Some(build_stream_error) = error.downcast_ref::<BuildStreamError>() {
+            match build_stream_error {
+                BuildStreamError::StreamConfigNotSupported => println!("Some build stream error!"),
+                _ => println!("Some build stream error!")
+            }
+        }
+    }
 }
