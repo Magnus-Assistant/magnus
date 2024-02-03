@@ -11,10 +11,11 @@ use std::collections::VecDeque;
 
 pub async fn speak(message: String, assistant_audio_sender: Sender<Vec<f32>>) -> Result<(), Box<dyn std::error::Error>> {
     let data = serde_json::json!({
-        "model": "tts-1-hd",
+        "model": "tts-1",
         "input": message,
         "voice": "echo",
-        "response_format": "opus"
+        "response_format": "opus",
+        "speed": 1.2
     });
 
     let response = get_reqwest_client()
