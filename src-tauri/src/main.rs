@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use cpal::traits::DeviceTrait;
-use crossbeam::channel::{bounded, Receiver, Sender};
+use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::thread;
 
 mod assistant;
@@ -52,7 +52,7 @@ async fn create_message(message: String) {
     let response = assistant::get_assistant_last_response(globals::get_thread_id()).await.unwrap();
 
     // speak
-    tts_utils::speak(response);
+    // let _ = tts_utils::speak(response, ).await;
 }
 
 fn main() {
@@ -60,6 +60,8 @@ fn main() {
     
     let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
     let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
+
+    let (assistant_a_sender, assistant_audio_receiver): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded::<Vec<f32>>();
 
     let default_input_device = audio_input::get_audio_input_device();
     let audio_config = default_input_device.default_input_config().unwrap();
@@ -75,12 +77,21 @@ fn main() {
     thread::spawn(move || {
         transcription::run(audio_receiver, transcription_sender, audio_config.sample_rate());
     });
-
+    
     // assistant
     let rt = tokio::runtime::Runtime::new().unwrap();
+    let assistant_audio_sender = assistant_a_sender.clone();
     rt.spawn(async {
         create_message_thread().await;
-        assistant::run(transcription_receiver).await;
+        assistant::run(transcription_receiver, assistant_audio_sender).await;
+    });
+    // rt.block_on(async {
+    //     create_message_thread().await;
+    // });
+
+    // tts
+    thread::spawn(move || {
+        tts_utils::run(assistant_audio_receiver);
     });
 
     tauri::Builder::default()

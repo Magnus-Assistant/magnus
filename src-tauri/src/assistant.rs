@@ -3,9 +3,9 @@ use crate::{tools, tts_utils};
 use reqwest::Error;
 use std::thread;
 use std::time::Duration;
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, Sender};
 
-pub async fn run(transcription_receiver: Receiver<String>) {
+pub async fn run(transcription_receiver: Receiver<String>, assistant_audio_sender: Sender<Vec<f32>>) {
     loop {
         // receive speech transcription from vosk
         if let Ok(transcription) = transcription_receiver.try_recv() {
@@ -27,7 +27,7 @@ pub async fn run(transcription_receiver: Receiver<String>) {
             let response = get_assistant_last_response(get_thread_id()).await.unwrap();
             
             // speak response
-            tts_utils::speak(response);
+            let _ = tts_utils::speak(response, assistant_audio_sender.clone()).await;
         }
     }
 } 
