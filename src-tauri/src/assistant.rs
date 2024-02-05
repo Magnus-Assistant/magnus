@@ -1,11 +1,12 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
-use crate::{tools, tts_utils};
+use crate::{tools, audio_output};
 use reqwest::Error;
 use std::thread;
 use std::time::Duration;
 use crossbeam::channel::{Receiver, Sender};
+use tokio::task;
 
-pub async fn run(transcription_receiver: Receiver<String>, assistant_audio_sender: Sender<Vec<f32>>) {
+pub async fn run(transcription_receiver: Receiver<String>, audio_output_sender: Sender<Vec<i16>>) {
     loop {
         // receive speech transcription from vosk
         if let Ok(transcription) = transcription_receiver.try_recv() {
@@ -26,8 +27,8 @@ pub async fn run(transcription_receiver: Receiver<String>, assistant_audio_sende
 
             let response = get_assistant_last_response(get_thread_id()).await.unwrap();
             
-            // speak response
-            let _ = tts_utils::speak(response, assistant_audio_sender.clone()).await;
+            // speak response 
+            let _ = audio_output::speak(response, audio_output_sender.clone()).await;
         }
     }
 } 

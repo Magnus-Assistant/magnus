@@ -15,12 +15,12 @@ pub fn get_audio_input_device() -> Device {
         }
         println!("Looking for input device.")
     };
-    println!("Found!");
+    println!("Found!\n {:?}", audio_input_device.name());
 
     audio_input_device
 }
 
-fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
+fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
     let config = device.default_input_config().unwrap();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
 
@@ -28,8 +28,9 @@ fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> 
         error_sender.send(e).ok();
     }
 
-    fn write_data<T: Sample>(data: &[T], channels: u16, audio_sender: Sender<Vec<i16>>)
+    fn write_data<T>(data: &[T], channels: u16, audio_input_sender: Sender<Vec<i16>>)
     where
+        T: Sample,
         i16: FromSample<T>
     {
         let mut buffer: Vec<i16> = vec![];
@@ -37,11 +38,11 @@ fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> 
             buffer.push(frame[0].to_sample::<i16>());
         }
 
-        match audio_sender.try_send(buffer) {
+        match audio_input_sender.try_send(buffer) {
             Ok(_) => {},
             Err(e) => {
                 if e.is_disconnected() {
-                    panic!("Audio channel disconnected!")
+                    panic!("Audio input channel disconnected!")
                 }
             }
         }
@@ -50,19 +51,19 @@ fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> 
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => device.build_input_stream(
             &config.clone().into(),
-            move |data: &[f32], _: &_| write_data(data, config.channels(), audio_sender.clone()),
+            move |data: &[f32], _: &_| write_data(data, config.channels(), audio_input_sender.clone()),
             move |e| error_callback(e, error_sender.clone()),
             None
         ),
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.clone().into(),
-            move |data: &[i16], _: &_| write_data(data, config.channels(), audio_sender.clone()),
+            move |data: &[i16], _: &_| write_data(data, config.channels(), audio_input_sender.clone()),
             move |e| error_callback(e, error_sender.clone()),
             None
         ),
         cpal::SampleFormat::U16 => device.build_input_stream(
             &config.clone().into(),
-            move |data: &[u16], _: &_| write_data(data, config.channels(), audio_sender.clone()),
+            move |data: &[u16], _: &_| write_data(data, config.channels(), audio_input_sender.clone()),
             move |e| error_callback(e, error_sender.clone()),
             None
         ),
@@ -70,8 +71,8 @@ fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> 
     }.expect("Failed to build stream!");
 
     match stream.play() {
-        Ok(_) => println!("Successfully started audio stream!"),
-        Err(error) => println!("Failed to start audio stream: {}", error),
+        Ok(_) => println!("Successfully started audio input stream!"),
+        Err(error) => println!("Failed to start audio input stream: {}", error),
     }
 
     loop {
@@ -81,10 +82,10 @@ fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> 
     }
 }
 
-pub fn run(audio_sender: Sender<Vec<i16>>) {
+pub fn run(audio_input_sender: Sender<Vec<i16>>) {
     loop {
         let audio_input_device = get_audio_input_device();
-        let error = run_stream(audio_sender.clone(), audio_input_device);
+        let error = run_stream(audio_input_sender.clone(), audio_input_device);
         
         // many different potential errors can occur, maybe we handle them each differently??
         if let Some(stream_error) = error.downcast_ref::<StreamError>() {

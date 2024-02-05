@@ -8,7 +8,7 @@ use std::thread;
 mod assistant;
 mod globals;
 mod tools;
-mod tts_utils;
+mod audio_output;
 mod audio_input;
 mod transcription;
 
@@ -61,7 +61,7 @@ fn main() {
     let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
     let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
-    let (assistant_a_sender, assistant_audio_receiver): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded::<Vec<f32>>();
+    let (assistant_a_sender, assistant_audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = unbounded::<Vec<i16>>();
 
     let default_input_device = audio_input::get_audio_input_device();
     let audio_config = default_input_device.default_input_config().unwrap();
@@ -85,14 +85,15 @@ fn main() {
         create_message_thread().await;
         assistant::run(transcription_receiver, assistant_audio_sender).await;
     });
+
+    // audio output
+    thread::spawn(move || {
+        audio_output::run(assistant_audio_receiver);
+    });
+
     // rt.block_on(async {
     //     create_message_thread().await;
     // });
-
-    // tts
-    thread::spawn(move || {
-        tts_utils::run(assistant_audio_receiver);
-    });
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
