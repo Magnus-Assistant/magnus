@@ -59,7 +59,7 @@ async fn create_message(message: String, has_tts: bool) -> String {
     if has_tts {
         tts_utils::speak(response.clone());
     }
-    response
+    response.trim_matches('"').to_string()
 }
 
 fn main() {

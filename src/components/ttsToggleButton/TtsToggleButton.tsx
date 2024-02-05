@@ -1,4 +1,3 @@
-import "./styles.css"
 
 interface ttsButtonProps {
     onClick: () => void;
