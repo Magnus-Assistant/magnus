@@ -1,13 +1,8 @@
-use crate::globals::{get_open_ai_key, get_reqwest_client};
-use reqwest::header::TRANSFER_ENCODING;
+use crate::assistant;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{BuildStreamError, Device, Sample, StreamError, FromSample};
-use opus::Decoder;
-use ogg::reading::async_api::PacketReader;
-use tokio_util::io::StreamReader;
-use tokio_stream::StreamExt;
-use std::{collections::VecDeque, error::Error, thread, time::Duration};
+use std::{collections::VecDeque, error::Error, sync::{Arc, Mutex}, thread, time::Duration};
 
 pub fn get_audio_output_device() -> Device {
     let host = cpal::default_host();
@@ -19,60 +14,9 @@ pub fn get_audio_output_device() -> Device {
         }
         println!("Looking for output device.")
     };
-    println!("Found!\n{:?}", audio_output_device.name());
+    println!("Found output device! -> {:?}", audio_output_device.name().unwrap());
 
     audio_output_device
-}
-
-pub async fn speak(message: String, audio_output_sender: Sender<Vec<i16>>) {
-    let data = serde_json::json!({
-        "model": "tts-1",
-        "input": message,
-        "voice": "echo",
-        "response_format": "opus"
-    });
-
-    let response = get_reqwest_client()
-        .post("https://api.openai.com/v1/audio/speech")
-        .header(TRANSFER_ENCODING, "chunked")
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .json(&data)
-        .send()
-        .await
-        .unwrap();
-    
-    let bytes_stream = response.bytes_stream();
-    let stream = bytes_stream.map(|res| {
-        res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
-    });
-    let stream_reader = StreamReader::new(stream);
-    let mut packet_reader = PacketReader::new(stream_reader);
-
-    let mut opus_decoder = Decoder::new(48000, opus::Channels::Stereo).unwrap();
-
-    while let Some(packet) = packet_reader.next().await {
-        match packet {
-            Ok(packet) => {
-                let mut samples: Vec<i16> = vec![0; 1920];
-                let _ = opus_decoder.decode(&packet.data, &mut samples, false);
-
-                if samples.len() == 1920 {
-                    for half in samples.chunks(960) { // we receive the audio info in a vec of size 1920, audio ouput stream needs vecs of size 960, so we send the data in two halves
-                        match audio_output_sender.try_send(half.to_vec()) {
-                            Ok(_) => {},
-                            Err(e) => {
-                                if e.is_disconnected() {
-                                    panic!("Audio output channel disconnected!")
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            Err(e) => println!("Error reading packet: {e:#?}")
-        }
-    }
 }
 
 pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device) -> Box<dyn Error> {
@@ -118,29 +62,54 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device) -> 
             None
         ),
         _ => panic!()
-    }.unwrap();
+    }.expect("Failed to build audio output stream!");
 
     match stream.play() {
         Ok(_) => println!("Successfully started audio output stream!"),
-        Err(error) => println!("Failed to start audio output stream: {}", error),
+        Err(error) => println!("Failed to start audio output stream: {}", error)
     }
 
     loop {
         if let Ok(stream_error) = error_receiver.try_recv() {
+            drop(stream);
             return Box::new(stream_error)
         }
     }
 }
 
-pub fn run(audio_output_receiver: Receiver<Vec<i16>>) {
+pub fn run(transcription_receiver: Receiver<String>) {
+    let output_stream_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    let (audio_output_sender, audio_output_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = crossbeam::channel::unbounded::<Vec<i16>>();
+
     loop {
+        *output_stream_running.lock().unwrap() = true;
+
+        // find an output device
         let audio_output_device = get_audio_output_device();
+        let audio_output_config = audio_output_device.default_output_config().unwrap();
+
+        // must create clones for these types to be moved to the async runtime
+        let output_stream_running_clone = output_stream_running.clone();
+        let transcription_receiver_clone = transcription_receiver.clone();
+        let audio_output_sender_clone = audio_output_sender.clone();
+
+        // spawn assistant async runtime
+        thread::spawn(move || {
+            tauri::async_runtime::spawn(async move {
+                assistant::run(output_stream_running_clone, transcription_receiver_clone, audio_output_sender_clone, audio_output_config).await;
+            });
+        });
+
+        // run output stream until there is some error
         let error = run_stream(audio_output_receiver.clone(), audio_output_device);
-        
+
+        // once there is an error with the output stream, stop the assistant runtime
+        *output_stream_running.lock().unwrap() = false;
+
         // many different potential errors can occur, maybe we handle them each differently??
         if let Some(stream_error) = error.downcast_ref::<StreamError>() {
             match stream_error {
-                StreamError::DeviceNotAvailable => println!("Device not available error!"),
+                StreamError::DeviceNotAvailable => println!("Output device disconnected!"),
                 StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
             }
         }

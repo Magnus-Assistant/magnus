@@ -4,6 +4,10 @@ use cpal::{BuildStreamError, Device, FromSample, Sample, StreamError};
 use std::thread;
 use std::time::Duration;
 use std::error::Error;
+use std::sync::{Arc, Mutex};
+
+use crate::transcription;
+
 
 pub fn get_audio_input_device() -> Device {
     let host = cpal::default_host();
@@ -15,7 +19,7 @@ pub fn get_audio_input_device() -> Device {
         }
         println!("Looking for input device.")
     };
-    println!("Found!\n {:?}", audio_input_device.name());
+    println!("Found input device! -> {:?}", audio_input_device.name().unwrap());
 
     audio_input_device
 }
@@ -68,7 +72,7 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn E
             None
         ),
         _ => panic!()
-    }.expect("Failed to build stream!");
+    }.expect("Failed to build audio input stream!");
 
     match stream.play() {
         Ok(_) => println!("Successfully started audio input stream!"),
@@ -77,20 +81,41 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn E
 
     loop {
         if let Ok(stream_error) = error_receiver.try_recv() {
+            drop(stream);
             return Box::new(stream_error)
         }
     }
 }
 
-pub fn run(audio_input_sender: Sender<Vec<i16>>) {
+pub fn run(transcription_sender: Sender<String>) {
+    let (audio_input_sender, audio_input_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
+    let input_stream_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+
     loop {
+        *input_stream_running.lock().unwrap() = true; 
+
+        // find an input device
         let audio_input_device = get_audio_input_device();
+        let audio_input_config = audio_input_device.default_input_config().unwrap();
+
+        // spawn the transcription thread with details on the device we found
+        let input_stream_running_clone = input_stream_running.clone();
+        let audio_input_receiver_clone = audio_input_receiver.clone();
+        let transcription_sender_clone = transcription_sender.clone();
+        thread::spawn(move || {
+            transcription::run(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
+        });
+
+        // run input stream until there is some error
         let error = run_stream(audio_input_sender.clone(), audio_input_device);
+
+        // stop transcription thread when there is an error with the input stream
+        *input_stream_running.lock().unwrap() = false;
         
         // many different potential errors can occur, maybe we handle them each differently??
         if let Some(stream_error) = error.downcast_ref::<StreamError>() {
             match stream_error {
-                StreamError::DeviceNotAvailable => println!("Device not available error!"),
+                StreamError::DeviceNotAvailable => println!("Input device disconnected!"),
                 StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
             }
         }

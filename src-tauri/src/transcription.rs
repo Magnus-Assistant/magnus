@@ -1,8 +1,9 @@
 use crossbeam::channel::{Receiver, Sender};
 use vosk::{DecodingState, Model, Recognizer};
 use cpal::SampleRate;
+use std::sync::{Arc, Mutex};
 
-pub fn run(audio_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
+pub fn run(input_stream_running: Arc<Mutex<bool>>, audio_input_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
     // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
     let model_path = "./models/vosk-model-small-en-us-0.15/";
 
@@ -10,8 +11,8 @@ pub fn run(audio_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<Stri
     let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
     println!("Vosk model loaded! It hears all...");
 
-    loop {
-        if let Ok(data) = audio_receiver.try_recv() {
+    while *input_stream_running.lock().unwrap() {
+        if let Ok(data) = audio_input_receiver.try_recv() {
             let decoding_state = recognizer.accept_waveform(data.as_slice());
             if decoding_state == DecodingState::Finalized {
                 // silence detected
