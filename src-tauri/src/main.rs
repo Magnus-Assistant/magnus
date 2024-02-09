@@ -9,7 +9,6 @@ mod globals;
 mod tools;
 mod audio_output;
 mod audio_input;
-mod transcription;
 
 async fn create_message_thread() -> String {
     let result = assistant::create_message_thread().await;

@@ -1,13 +1,11 @@
 use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, FromSample, Sample, StreamError};
+use cpal::{BuildStreamError, Device, FromSample, Sample, SampleRate, StreamError};
 use std::thread;
 use std::time::Duration;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
-
-use crate::transcription;
-
+use vosk::{DecodingState, Model, Recognizer};
 
 pub fn get_audio_input_device() -> Device {
     let host = cpal::default_host();
@@ -23,6 +21,30 @@ pub fn get_audio_input_device() -> Device {
 
     audio_input_device
 }
+
+pub fn run_transcription(input_stream_running: Arc<Mutex<bool>>, audio_input_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
+    // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+    let model_path = "./models/vosk-model-small-en-us-0.15/";
+
+    let model = Model::new(model_path).unwrap();
+    let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
+    println!("Vosk model loaded! It hears all...");
+
+    while *input_stream_running.lock().unwrap() {
+        if let Ok(data) = audio_input_receiver.try_recv() {
+            let decoding_state = recognizer.accept_waveform(data.as_slice());
+            if decoding_state == DecodingState::Finalized {
+                // silence detected
+                let transcription = recognizer.final_result().single().unwrap().text.to_string();
+
+                if !transcription.is_empty() && transcription != "huh".to_string() {
+                    transcription_sender.try_send(transcription).ok();
+                }
+            }
+        }
+    }
+}
+
 
 fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
     let config = device.default_input_config().unwrap();
@@ -103,7 +125,7 @@ pub fn run(transcription_sender: Sender<String>) {
         let audio_input_receiver_clone = audio_input_receiver.clone();
         let transcription_sender_clone = transcription_sender.clone();
         thread::spawn(move || {
-            transcription::run(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
+            run_transcription(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
         });
 
         // run input stream until there is some error

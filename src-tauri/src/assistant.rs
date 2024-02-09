@@ -283,10 +283,7 @@ pub async fn create_speech(assistant_response: String, /*assistant_response_rece
     }
 
     Ok(())
-        // }
-    // }
 }
-
 
 async fn execute(
     function_name: &str,
