@@ -9,6 +9,7 @@ mod globals;
 mod tools;
 mod audio_output;
 mod audio_input;
+mod permissions;
 
 async fn create_message_thread() -> String {
     let result = assistant::create_message_thread().await;
@@ -57,7 +58,7 @@ fn main() {
     dotenv::dotenv().ok();
         
     let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
-
+    
     // audio input
     thread::spawn(move || {
         audio_input::run(transcription_sender.clone());

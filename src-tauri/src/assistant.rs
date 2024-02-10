@@ -1,5 +1,5 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
-use crate::tools;
+use crate::{permissions, tools};
 use reqwest::Error;
 use std::thread;
 use std::time::Duration;
@@ -294,6 +294,12 @@ async fn execute(
         function_name, arguments
     );
     let result: String;
+
+    // check if the tool calls require certain permissions
+    match permissions::check(function_name) {
+        Some(message) => return Ok(message),
+        None => {}
+    }
 
     match arguments {
         // functions with arguments
