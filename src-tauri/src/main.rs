@@ -58,7 +58,7 @@ fn main() {
     dotenv::dotenv().ok();
         
     let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
-    
+
     // audio input
     thread::spawn(move || {
         audio_input::run(transcription_sender.clone());

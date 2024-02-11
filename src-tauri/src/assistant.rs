@@ -228,7 +228,7 @@ pub async fn print_messages(thread_id: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn create_speech(assistant_response: String, /*assistant_response_receiver: Receiver<String>,*/ audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
+pub async fn create_speech(assistant_response: String, audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
     let channels: opus::Channels = match channels {
         1 => opus::Channels::Mono,
         2 => opus::Channels::Stereo,

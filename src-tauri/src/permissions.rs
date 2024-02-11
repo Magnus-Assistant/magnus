@@ -72,6 +72,8 @@ pub fn get() -> Value {
 }
 
 pub fn check(tool_call: &str) -> Option<String> {
+    if !PERMISSIONS_REQUIRED.contains_key(tool_call) { return None };
+
     let we_have_permission_to = get();
     let mut need_permission_to: Vec<&str> = vec![];
 

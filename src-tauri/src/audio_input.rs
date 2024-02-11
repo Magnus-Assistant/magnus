@@ -6,6 +6,7 @@ use std::time::Duration;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 use vosk::{DecodingState, Model, Recognizer};
+use device_query::{DeviceQuery, DeviceState, Keycode};
 
 pub fn get_audio_input_device() -> Device {
     let host = cpal::default_host();
@@ -31,7 +32,7 @@ pub fn run_transcription(input_stream_running: Arc<Mutex<bool>>, audio_input_rec
     println!("Vosk model loaded! It hears all...");
 
     while *input_stream_running.lock().unwrap() {
-        if let Ok(data) = audio_input_receiver.try_recv() {
+        if let Ok(data) = audio_input_receiver.try_recv() { 
             let decoding_state = recognizer.accept_waveform(data.as_slice());
             if decoding_state == DecodingState::Finalized {
                 // silence detected
@@ -45,30 +46,44 @@ pub fn run_transcription(input_stream_running: Arc<Mutex<bool>>, audio_input_rec
     }
 }
 
-
 fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
     let config = device.default_input_config().unwrap();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
+    let keyboard = DeviceState::new();
 
     fn error_callback(e: StreamError, error_sender: Sender<StreamError>) {
         error_sender.send(e).ok();
     }
 
-    fn write_data<T>(data: &[T], channels: u16, audio_input_sender: Sender<Vec<i16>>)
+    fn write_data<T>(data: &[T], channels: u16, audio_input_sender: Sender<Vec<i16>>, keyboard: DeviceState)
     where
         T: Sample,
         i16: FromSample<T>
     {
-        let mut buffer: Vec<i16> = vec![];
-        for frame in data.chunks(channels.into()) {
-            buffer.push(frame[0].to_sample::<i16>());
-        }
+        // set desired keybind here
+        if keyboard.get_keys() == vec![Keycode::M, Keycode::RAlt] {
+            let mut buffer: Vec<i16> = vec![];
+            for frame in data.chunks(channels.into()) {
+                buffer.push(frame[0].to_sample::<i16>());
+            }
 
-        match audio_input_sender.try_send(buffer) {
-            Ok(_) => {},
-            Err(e) => {
-                if e.is_disconnected() {
-                    panic!("Audio input channel disconnected!")
+            match audio_input_sender.try_send(buffer) {
+                Ok(_) => {},
+                Err(e) => {
+                    if e.is_disconnected() {
+                        panic!("Audio input channel disconnected!")
+                    }
+                }
+            }
+        }
+        // if keybind is not pressed, send silence to vosk
+        else {
+            match audio_input_sender.try_send(vec![0; 448]) {
+                Ok(_) => {},
+                Err(e) => {
+                    if e.is_disconnected() {
+                        panic!("Audio input channel disconnected!")
+                    }
                 }
             }
         }
@@ -77,19 +92,19 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn E
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => device.build_input_stream(
             &config.clone().into(),
-            move |data: &[f32], _: &_| write_data(data, config.channels(), audio_input_sender.clone()),
+            move |data: &[f32], _: &_| write_data(data, config.channels(), audio_input_sender.clone(), keyboard.clone()),
             move |e| error_callback(e, error_sender.clone()),
             None
         ),
         cpal::SampleFormat::I16 => device.build_input_stream(
             &config.clone().into(),
-            move |data: &[i16], _: &_| write_data(data, config.channels(), audio_input_sender.clone()),
+            move |data: &[i16], _: &_| write_data(data, config.channels(), audio_input_sender.clone(), keyboard.clone()),
             move |e| error_callback(e, error_sender.clone()),
             None
         ),
         cpal::SampleFormat::U16 => device.build_input_stream(
             &config.clone().into(),
-            move |data: &[u16], _: &_| write_data(data, config.channels(), audio_input_sender.clone()),
+            move |data: &[u16], _: &_| write_data(data, config.channels(), audio_input_sender.clone(), keyboard.clone()),
             move |e| error_callback(e, error_sender.clone()),
             None
         ),
