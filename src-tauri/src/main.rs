@@ -74,20 +74,20 @@ fn main() {
     let audio_config = default_input_device.default_input_config().unwrap();
 
     //audio input
-    // let audio_sender = a_sender.clone();
-    // thread::spawn(move || {
-    //     audio_input::run(audio_sender);
-    // });
+    let audio_sender = a_sender.clone();
+    thread::spawn(move || {
+        audio_input::run(audio_sender);
+    });
 
-    // transcription
-    // let transcription_sender = t_sender.clone();
-    // thread::spawn(move || {
-    //     transcription::run(
-    //         audio_receiver,
-    //         transcription_sender,
-    //         audio_config.sample_rate(),
-    //     );
-    // });
+    //transcription
+    let transcription_sender = t_sender.clone();
+    thread::spawn(move || {
+        transcription::run(
+            audio_receiver,
+            transcription_sender,
+            audio_config.sample_rate(),
+        );
+    });
 
     // assistant
     let rt = tokio::runtime::Runtime::new().unwrap();
