@@ -5,11 +5,13 @@ interface Props {
     chat_style: string
 }
 
-const ChatBubble: React.FC<Props> = ({text, chat_style}) => {
+const ChatBubble: React.FC<Props> = ({ text, chat_style }) => {
     return (
-        <div className={chat_style}>
-            {text}
-        </div>
+        <span>
+            <div className={chat_style}>
+                {text}
+            </div>
+        </span>
     )
 }
 

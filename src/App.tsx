@@ -58,7 +58,7 @@ function App() {
   return (
     <div className="container">
       <ChatFrame initialMessages={messages}></ChatFrame>
-      <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 'auto', marginBottom: 10 }}>
+      <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 10, marginBottom: 10 }}>
         <TtsButton onClick={handleTtsClick}></TtsButton>
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>
