@@ -24,7 +24,6 @@ export function scrollToBottom() {
 }
 
 const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages }) => {
-    // const [messages, setMessages] = useState<{ type: 'magnus' | 'user'; text: string }[]>([]);
 
     useEffect(() => {
         // Initialize messages with initialMessages when provided

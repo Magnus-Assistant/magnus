@@ -19,6 +19,10 @@ async fn create_message_thread() -> String {
     match result {
         Ok(thread_id) => {
             globals::set_thread_id(thread_id.clone().trim_matches('\"').to_string());
+            println!(	
+                "Successfully created thread: {}",	
+                globals::get_thread_id()	
+            );
             thread_id
         }
         Err(_) => panic!("Error creating the message thread!"),
