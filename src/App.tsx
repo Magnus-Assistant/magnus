@@ -48,6 +48,7 @@ function App() {
       .then((response) => {
         if (typeof (response) === 'string') {
           const newMessage: Message = { type: 'magnus', text: response }
+          console.log(newMessage)
           setMessages((prevMessages) => [...prevMessages, newMessage])
           console.log(messages);
         }
@@ -57,7 +58,7 @@ function App() {
   return (
     <div className="container">
       <ChatFrame initialMessages={messages}></ChatFrame>
-      <form onSubmit={handleFormSubmit} style={{ display: 'flex', justifyContent: 'center' }}>
+      <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 'auto', marginBottom: 10 }}>
         <TtsButton onClick={handleTtsClick}></TtsButton>
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>

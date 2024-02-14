@@ -1,0 +1,21 @@
+.userChatBubble {
+    background-color: #5cb85c;
+    color: #000;
+    border-radius: 10px;
+    padding: 10px 15px;
+    max-width: 65%;
+    margin: 10px;
+    margin-left: auto;
+    position: relative;
+}
+
+.magnusChatBubble {
+    background-color: #3834F0;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 15px;
+    max-width: 65%;
+    margin: 10px;
+    margin-right: auto;
+    position: relative;
+}

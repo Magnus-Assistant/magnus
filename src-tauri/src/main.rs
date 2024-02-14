@@ -3,6 +3,7 @@
 
 use cpal::traits::DeviceTrait;
 use crossbeam::channel::{bounded, Receiver, Sender};
+use serde_json::Value;
 use std::thread;
 
 mod assistant;
@@ -26,13 +27,14 @@ async fn create_message_thread() -> String {
 
 #[tauri::command]
 async fn create_message(message: String, has_tts: bool) -> String {
-    let data = serde_json::json!({
+    let data: Value = serde_json::json!({
         "role": "user",
         "content": message
     });
+    let cloned_user_data = data.clone();
 
     // add message to the thread of messages
-    match assistant::create_message(data, globals::get_thread_id()).await {
+    match assistant::create_message(cloned_user_data, globals::get_thread_id()).await {
         Ok(_) => {}
         Err(e) => {
             println!("ERROR in create message {}", e)
@@ -66,7 +68,8 @@ fn main() {
     dotenv::dotenv().ok();
 
     let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
-    let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
+    let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) =
+        bounded::<String>(1);
     let default_input_device = audio_input::get_audio_input_device();
     let audio_config = default_input_device.default_input_config().unwrap();
 
@@ -79,7 +82,11 @@ fn main() {
     // transcription
     let transcription_sender = t_sender.clone();
     thread::spawn(move || {
-        transcription::run(audio_receiver, transcription_sender, audio_config.sample_rate());
+        transcription::run(
+            audio_receiver,
+            transcription_sender,
+            audio_config.sample_rate(),
+        );
     });
 
     // assistant

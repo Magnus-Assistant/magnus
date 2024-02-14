@@ -20,6 +20,7 @@ pub fn get_audio_input_device() -> Device {
     audio_input_device
 }
 
+/// Starts the input stream and sends raw audio data back to the main thread
 fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
     let config = device.default_input_config().unwrap();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
@@ -81,6 +82,7 @@ fn run_stream(audio_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> 
     }
 }
 
+/// Starts an audio input stream
 pub fn run(audio_sender: Sender<Vec<i16>>) {
     loop {
         let audio_input_device = get_audio_input_device();

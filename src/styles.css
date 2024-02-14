@@ -15,14 +15,11 @@
 }
 
 .container {
-  margin: 0;
-  padding-top: 10vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   text-align: center;
-  max-height: 800;
-  max-width: 600;
+  min-height: 95vh;
 }
 
 .row {
@@ -59,9 +56,8 @@ button {
 }
 
 input {
-  width: 70vh;
-  resize: vertical;
-  height: auto;
+  width: 50vw;
+  min-width: 100;
 }
 
 button {
@@ -74,11 +70,6 @@ button:hover {
 button:active {
   border-color: #396cd8;
   background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
 }
 
 #greet-input {

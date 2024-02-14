@@ -13,7 +13,6 @@ pub async fn run(transcription_receiver: Receiver<String>) {
                 "role": "user",
                 "content": transcription
             });
-
             let _ = create_message(message, get_thread_id()).await;
 
             let run_id: String = create_run(get_thread_id())
@@ -46,7 +45,7 @@ pub async fn create_message_thread() -> Result<String, Error> {
     Ok(thread["id"].to_string())
 }
 
-pub async fn create_message(message: serde_json::Value, thread_id: String) -> Result<(), Error> {
+pub async fn create_message(user_message: serde_json::Value, thread_id: String) -> Result<String, Error> {
     get_reqwest_client()
         .post(format!(
             "https://api.openai.com/v1/threads/{}/messages",
@@ -55,11 +54,11 @@ pub async fn create_message(message: serde_json::Value, thread_id: String) -> Re
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
-        .json(&message)
+        .json(&user_message)
         .send()
         .await?;
-    println!("User: {}", message["content"]);
-    Ok(())
+    println!("User: {}", user_message["content"]);
+    Ok(user_message["content"].to_string())
 }
 
 pub async fn create_run(thread_id: String) -> Result<String, Error> {
