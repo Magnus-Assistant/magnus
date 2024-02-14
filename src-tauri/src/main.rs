@@ -56,6 +56,7 @@ async fn create_message(message: String) {
 
 fn main() {
     dotenv::dotenv().ok();
+    crate::permissions::update(); // this won't be here in production, but for testing sake
         
     let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
