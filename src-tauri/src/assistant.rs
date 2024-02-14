@@ -1,12 +1,20 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
-use crate::{tools, tts_utils};
+use crate::tools;
 use reqwest::Error;
 use std::thread;
 use std::time::Duration;
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use reqwest::header::TRANSFER_ENCODING;
+use opus::Decoder;
+use ogg::reading::async_api::PacketReader;
+use tokio_util::io::StreamReader;
+use cpal::{SampleRate, SupportedStreamConfig};
+use tokio_stream::StreamExt;
 
-pub async fn run(transcription_receiver: Receiver<String>) {
-    loop {
+pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver: Receiver<String>, audio_output_sender: Sender<Vec<i16>>, audio_output_config: SupportedStreamConfig /* , assistant_response_sender: Sender<String>*/) {
+    // continue to run as long as the output stream is running also
+    while *output_stream_running.lock().unwrap() {
         // receive speech transcription from vosk
         if let Ok(transcription) = transcription_receiver.try_recv() {
             let message = serde_json::json!({
@@ -25,9 +33,8 @@ pub async fn run(transcription_receiver: Receiver<String>) {
             let _ = run_and_wait(&run_id, get_thread_id()).await;
 
             let response = get_assistant_last_response(get_thread_id()).await.unwrap();
-            
-            // speak response
-            tts_utils::speak(response);
+
+            let _ = create_speech(response, audio_output_sender.clone(), audio_output_config.sample_rate(), audio_output_config.channels()).await;
         }
     }
 } 
@@ -216,6 +223,63 @@ pub async fn print_messages(thread_id: String) -> Result<(), Error> {
         println!("{}", pretty_json);
     } else {
         println!("Failed to serialize to pretty-printed JSON");
+    }
+
+    Ok(())
+}
+
+pub async fn create_speech(assistant_response: String, /*assistant_response_receiver: Receiver<String>,*/ audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
+    let channels: opus::Channels = match channels {
+        1 => opus::Channels::Mono,
+        2 => opus::Channels::Stereo,
+        _ => panic!()
+    };
+    let mut opus_decoder = Decoder::new(sample_rate.0, channels).unwrap();
+
+    let data = serde_json::json!({
+        "model": "tts-1",
+        "input": assistant_response,
+        "voice": "echo",
+        "response_format": "opus"
+    });
+
+    let response = get_reqwest_client()
+        .post("https://api.openai.com/v1/audio/speech")
+        .header(TRANSFER_ENCODING, "chunked")
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", get_open_ai_key()))
+        .json(&data)
+        .send()
+        .await?;
+        
+    let bytes_stream = response.bytes_stream();
+    let stream = bytes_stream.map(|res| {
+        res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    });
+    let stream_reader = StreamReader::new(stream);
+    let mut packet_reader = PacketReader::new(stream_reader);
+
+    while let Some(packet) = packet_reader.next().await {
+        match packet {
+            Ok(packet) => {
+                let mut samples: Vec<i16> = vec![0; 1920];
+                let _ = opus_decoder.decode(&packet.data, &mut samples, false);
+
+                if samples.len() == 1920 {
+                    for half in samples.chunks(960) { // we receive the audio info in a vec of size 1920, audio ouput stream needs vecs of size 960, so we send the data in two halves
+                        match audio_output_sender.try_send(half.to_vec()) {
+                            Ok(_) => {},
+                            Err(e) => {
+                                if e.is_disconnected() {
+                                    panic!("Audio output channel disconnected!")
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            Err(e) => println!("Error reading packet: {e:#?}")
+        }
     }
 
     Ok(())
