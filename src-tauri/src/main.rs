@@ -1,17 +1,15 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use cpal::traits::DeviceTrait;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use serde_json::Value;
 use std::thread;
 
 mod assistant;
-mod audio_input;
 mod globals;
 mod tools;
-mod transcription;
-mod tts_utils;
+mod audio_output;
+mod audio_input;
 
 async fn create_message_thread() -> String {
     let result = assistant::create_message_thread().await;
@@ -58,41 +56,28 @@ async fn create_message(user_message: String, has_tts: bool) -> String {
     // speak
     println!("Has TTS: {}", has_tts);
     if has_tts {
-        tts_utils::speak(response.clone());
+        //tts_utils::speak(response.clone());
     }
     response.trim_matches('"').to_string()
 }
 
 fn main() {
     dotenv::dotenv().ok();
+        
+    let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
-    let (a_sender, audio_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
-    let (t_sender, transcription_receiver): (Sender<String>, Receiver<String>) =
-        bounded::<String>(1);
-    let default_input_device = audio_input::get_audio_input_device();
-    let audio_config = default_input_device.default_input_config().unwrap();
-
-    //audio input
-    let audio_sender = a_sender.clone();
+    // audio input
     thread::spawn(move || {
-        audio_input::run(audio_sender);
+        audio_input::run(transcription_sender.clone());
     });
 
-    //transcription
-    let transcription_sender = t_sender.clone();
+    // assistant and audio output
     thread::spawn(move || {
-        transcription::run(
-            audio_receiver,
-            transcription_sender,
-            audio_config.sample_rate(),
-        );
-    });
-
-    // assistant
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.spawn(async {
-        create_message_thread().await;
-        assistant::run(transcription_receiver).await;
+        // create a message thread first
+        tauri::async_runtime::block_on(async {
+            create_message_thread().await;
+        });
+        audio_output::run(transcription_receiver);
     });
 
     tauri::Builder::default()
