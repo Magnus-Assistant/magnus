@@ -9,10 +9,15 @@ pub async fn run(transcription_receiver: Receiver<String>) {
     loop {
         // receive speech transcription from vosk
         if let Ok(transcription) = transcription_receiver.try_recv() {
+
+            //could emit transcription here for the user
+
             let message = serde_json::json!({
                 "role": "user",
                 "content": transcription
             });
+
+            // this is the create message we are using for audio input. Text is handle in main
             let _ = create_message(message, get_thread_id()).await;
 
             let run_id: String = create_run(get_thread_id())
@@ -24,8 +29,11 @@ pub async fn run(transcription_receiver: Receiver<String>) {
             let _ = run_and_wait(&run_id, get_thread_id()).await;
 
             let response = get_assistant_last_response(get_thread_id()).await.unwrap();
-            
+            //could emit the reponse from audio output here
+
             // speak response
+            // TODO: Make this toggleable just like how main functions.
+            // Maybe create a universal message struct that contains user and magnus messages and if it has TTS
             tts_utils::speak(response);
         }
     }
@@ -45,7 +53,7 @@ pub async fn create_message_thread() -> Result<String, Error> {
     Ok(thread["id"].to_string())
 }
 
-pub async fn create_message(user_message: serde_json::Value, thread_id: String) -> Result<String, Error> {
+pub async fn create_message(user_message: serde_json::Value, thread_id: String) -> Result<(), Error> {
     get_reqwest_client()
         .post(format!(
             "https://api.openai.com/v1/threads/{}/messages",
@@ -58,7 +66,7 @@ pub async fn create_message(user_message: serde_json::Value, thread_id: String) 
         .send()
         .await?;
     println!("User: {}", user_message["content"]);
-    Ok(user_message["content"].to_string())
+    Ok(())
 }
 
 pub async fn create_run(thread_id: String) -> Result<String, Error> {

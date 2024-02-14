@@ -26,20 +26,15 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn create_message(message: String, has_tts: bool) -> String {
+async fn create_message(user_message: String, has_tts: bool) -> String {
     let data: Value = serde_json::json!({
         "role": "user",
-        "content": message
+        "content": user_message
     });
     let cloned_user_data = data.clone();
 
     // add message to the thread of messages
-    match assistant::create_message(cloned_user_data, globals::get_thread_id()).await {
-        Ok(_) => {}
-        Err(e) => {
-            println!("ERROR in create message {}", e)
-        }
-    }
+    let _ = assistant::create_message(cloned_user_data, globals::get_thread_id()).await;
 
     // create a run id
     let run_id: String = assistant::create_run(globals::get_thread_id())
