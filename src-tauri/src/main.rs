@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crossbeam::channel::{bounded, Receiver, Sender};
+use tauri::api::path::desktop_dir;
 use std::thread;
 
 mod assistant;
@@ -55,6 +56,8 @@ async fn create_message(message: String) {
 
 fn main() {
     dotenv::dotenv().ok();
+    tauri::api::path::desktop_dir;
+    println!("{:}", desktop_dir().unwrap().display());
         
     let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
