@@ -299,6 +299,14 @@ async fn execute(
         // functions with arguments
         Some(args) => {
             result = match function_name {
+                "close_application" => {
+                    if let Some(app_image_name) = args.get("app_image_name") {
+                        tools::close_application(app_image_name.as_str().unwrap())
+                    }
+                    else {
+                        panic!("Failed to find image name in arguments object.")
+                    }
+                },
                 "get_location_coordinates" => {
                     if let Some(location) = args.get("location").and_then(|v| v.as_str()) {
                         tools::get_location_coordinates(location).await
@@ -339,7 +347,8 @@ async fn execute(
                 "get_user_coordinates" => tools::get_user_coordinates().await,
                 "get_clipboard_text" => tools::get_clipboard_text(),
                 "get_screenshot" => tools::get_screenshot().await,
-                "get_system_applications_list" => tools::get_system_applications_list(),
+                "get_app_ids" => tools::get_app_ids(),
+                "get_app_image_names" => tools::get_app_image_names(),
                 "get_time" => tools::get_time(),
                 _ => panic!("No function name given without arguments."),
             };

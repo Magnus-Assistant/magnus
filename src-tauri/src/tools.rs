@@ -13,6 +13,7 @@ use serde_json::Value;
 use std::{
     fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration
 };
+use tauri::api::process::Command;
 use urlencoding::encode;
 
 pub async fn get_location_coordinates(location: &str) -> String {
@@ -202,10 +203,8 @@ pub fn get_time() -> String {
     format!("{:#?}", Local::now())
 }
 
-use tauri::api::process::Command;
-
-#[cfg(target_os = "windows")]
-pub fn get_system_applications_list() -> String {
+#[cfg(target_os = "windows")] // need app id to open an app
+pub fn get_app_ids() -> String {
     let command = Command::new("powershell")
         .args(["Get-StartApps"])
         .output();
@@ -216,12 +215,43 @@ pub fn get_system_applications_list() -> String {
     };
 }
 
+#[cfg(target_os = "windows")] // need app image name to close an app
+pub fn get_app_image_names() -> String {
+    let output = Command::new("powershell")
+        .args(["tasklist"])
+        .output()
+        .expect("Failed to get task list.");
+
+    let mut app_images = vec![];
+
+    for line in output.stdout.lines().step_by(2).skip(1) {
+        let app_image = line[..25].trim();
+        if app_image.ends_with(".exe") {
+            app_images.push(app_image);
+        }
+    }
+
+    let unique_app_images: Vec<&str> = app_images.into_iter().collect::<std::collections::HashSet<&str>>().into_iter().collect();
+
+    unique_app_images.join(", ")
+}
+
 #[cfg(target_os = "windows")]
 pub fn open_application(app_id: &str) -> String {
     let _ = Command::new("explorer.exe")
         .args([format!("shell:AppsFolder\\{}", app_id)])
         .spawn()
-        .expect("Faield to spawn app!");
+        .expect("Failed to spawn app!");
+
+    format!("")
+}
+
+#[cfg(target_os = "windows")]
+pub fn close_application(app_image_name: &str) -> String {
+    let _ = Command::new("powershell")
+        .args(["taskkill", "/IM", app_image_name, "/F"])
+        .spawn()
+        .expect("Failed to close app!");
 
     format!("")
 }
