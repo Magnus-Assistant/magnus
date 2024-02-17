@@ -201,3 +201,27 @@ pub fn get_time() -> String {
     println!("getting time!");
     format!("{:#?}", Local::now())
 }
+
+use tauri::api::process::Command;
+
+#[cfg(target_os = "windows")]
+pub fn get_system_applications_list() -> String {
+    let command = Command::new("powershell")
+        .args(["Get-StartApps"])
+        .output();
+
+    match command {
+        Ok(output) => return output.stdout,
+        Err(err) => return format!("Erorr getting system application list: {err}")
+    };
+}
+
+#[cfg(target_os = "windows")]
+pub fn open_application(app_id: &str) -> String {
+    let _ = Command::new("explorer.exe")
+        .args([format!("shell:AppsFolder\\{}", app_id)])
+        .spawn()
+        .expect("Faield to spawn app!");
+
+    format!("")
+}

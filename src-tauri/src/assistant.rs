@@ -321,6 +321,14 @@ async fn execute(
                     } else {
                         panic!("Failed to find latitude, longitude, or number of days in arguments object.")
                     }
+                },
+                "open_application" => {
+                    if let Some(app_id) = args.get("app_id") {
+                        tools::open_application(app_id.as_str().unwrap())
+                    }
+                    else {
+                        panic!("Failed to find app ID in arguments object.")
+                    }
                 }
                 _ => panic!("No function name given with arguments."),
             };
@@ -331,8 +339,8 @@ async fn execute(
                 "get_user_coordinates" => tools::get_user_coordinates().await,
                 "get_clipboard_text" => tools::get_clipboard_text(),
                 "get_screenshot" => tools::get_screenshot().await,
+                "get_system_applications_list" => tools::get_system_applications_list(),
                 "get_time" => tools::get_time(),
-                "pass" => tools::pass(),
                 _ => panic!("No function name given without arguments."),
             };
         }

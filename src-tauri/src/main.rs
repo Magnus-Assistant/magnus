@@ -56,9 +56,7 @@ async fn create_message(message: String) {
 
 fn main() {
     dotenv::dotenv().ok();
-    tauri::api::path::desktop_dir;
-    println!("{:}", desktop_dir().unwrap().display());
-        
+
     let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
     // audio input
