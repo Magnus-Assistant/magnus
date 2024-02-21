@@ -2,14 +2,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crossbeam::channel::{bounded, Receiver, Sender};
+use lazy_static::lazy_static;
 use serde_json::Value;
 use std::thread;
 
 mod assistant;
+mod audio_input;
+mod audio_output;
 mod globals;
 mod tools;
-mod audio_output;
-mod audio_input;
+
+lazy_static! {
+    static ref TRANSCRIPTION_CHANNEL: (Sender<String>, Receiver<String>) = bounded::<String>(1);
+}
 
 async fn create_message_thread() -> String {
     let result = assistant::create_message_thread().await;
@@ -17,10 +22,7 @@ async fn create_message_thread() -> String {
     match result {
         Ok(thread_id) => {
             globals::set_thread_id(thread_id.clone().trim_matches('\"').to_string());
-            println!(	
-                "Successfully created thread: {}",	
-                globals::get_thread_id()	
-            );
+            println!("Successfully created thread: {}", globals::get_thread_id());
             thread_id
         }
         Err(_) => panic!("Error creating the message thread!"),
@@ -55,16 +57,29 @@ async fn create_message(user_message: String, has_tts: bool) -> String {
 
     // speak
     println!("Has TTS: {}", has_tts);
-    if has_tts {
-        //tts_utils::speak(response.clone());
+    if has_tts == true {
+        println!("Entered TTS logic");
+        let sender = TRANSCRIPTION_CHANNEL.0.clone();
+
+        println!("We should be TTSing");
+        match sender.try_send(user_message.clone()) {
+            Ok(_) => {
+                println!(
+                    "Successfully sent this text over t_sender: {}",
+                    user_message.clone()
+                )
+            }
+            Err(err) => {
+                println!("Error sending input text to TTS: {}", err);
+            }
+        }
     }
     response.trim_matches('"').to_string()
 }
 
 fn main() {
     dotenv::dotenv().ok();
-        
-    let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
+    let (transcription_sender, transcription_receiver) = &*TRANSCRIPTION_CHANNEL;
 
     // audio input
     thread::spawn(move || {
@@ -77,7 +92,7 @@ fn main() {
         tauri::async_runtime::block_on(async {
             create_message_thread().await;
         });
-        audio_output::run(transcription_receiver);
+        audio_output::run(transcription_receiver.clone());
     });
 
     tauri::Builder::default()

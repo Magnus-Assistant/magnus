@@ -20,6 +20,7 @@ function App() {
       const newMessage: Message = { type: 'user', text: text }
       setMessages((prevMessages) => [...prevMessages, newMessage])
       // add brief timeout so that the text can render. Then scroll down
+      console.log("Form Submit Messages: ", messages)
       setTimeout(scrollToBottom, 30);
 
       //clear input field      
@@ -48,9 +49,8 @@ function App() {
       .then((response) => {
         if (typeof (response) === 'string') {
           const newMessage: Message = { type: 'magnus', text: response }
-          console.log(newMessage)
           setMessages((prevMessages) => [...prevMessages, newMessage])
-          console.log(messages);
+          console.log("Create Message Command Messages: ", messages)
         }
       })
   }

@@ -124,9 +124,9 @@ pub fn run(transcription_sender: Sender<String>) {
         let input_stream_running_clone = input_stream_running.clone();
         let audio_input_receiver_clone = audio_input_receiver.clone();
         let transcription_sender_clone = transcription_sender.clone();
-        thread::spawn(move || {
-            run_transcription(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
-        });
+        // thread::spawn(move || {
+        //     run_transcription(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
+        // });
 
         // run input stream until there is some error
         let error = run_stream(audio_input_sender.clone(), audio_input_device);
