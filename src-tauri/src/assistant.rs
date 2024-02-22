@@ -1,7 +1,6 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
 use crate::tools;
 use reqwest::Error;
-use std::thread;
 use std::time::Duration;
 use crossbeam::channel::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
@@ -39,7 +38,7 @@ pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver
             let _ = run_and_wait(&run_id, get_thread_id()).await;
 
             let response = get_assistant_last_response(get_thread_id()).await.unwrap();
-            //could emit the reponse from audio output here
+            //could emit the reponse from assistant here 
 
             // speak response
             // TODO: Make this toggleable just like how main functions.
@@ -47,6 +46,7 @@ pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver
             println!("Creating speech: {}", response);
             let _ = create_speech(response, audio_output_sender.clone(), audio_output_config.sample_rate(), audio_output_config.channels()).await;
         }
+        tokio::time::sleep(Duration::from_secs(1)).await;
     }
 } 
 
@@ -172,7 +172,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                 .await;
             }
         } else {
-            thread::sleep(Duration::from_secs(1));
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
 }

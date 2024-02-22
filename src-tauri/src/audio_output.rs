@@ -74,6 +74,7 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device) -> 
             drop(stream);
             return Box::new(stream_error)
         }
+        thread::sleep(Duration::from_secs(1));
     }
 }
 
