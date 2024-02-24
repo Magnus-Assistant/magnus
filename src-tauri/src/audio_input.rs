@@ -38,15 +38,12 @@ pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: 
                 // silence detected
                 let transcription = recognizer.final_result().single().unwrap().text.to_string();
 
-                if transcription.is_empty() {
-                    return None
-                }
-                else if transcription != "huh".to_string() {
+                if transcription != "huh".to_string() {
                     return Some(transcription);
                 }
             }
             else if decoding_state == DecodingState::Running {
-                // if partial result is nothing, and its been 3 seconds or more since the timer started, return None  
+                // if partial result is nothing and its been 3 seconds or more since the timer started, return None  
                 // without this, transcription will run until something has been said
                 let partial = recognizer.partial_result().partial;
 
