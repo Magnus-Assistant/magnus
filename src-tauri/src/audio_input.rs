@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 use vosk::{DecodingState, Model, Recognizer};
-use std::time::SystemTime;
+use std::time::Instant;
 use crate::globals::get_vosk_model;
 
 pub fn get_audio_input_device() -> Device {
@@ -25,17 +25,11 @@ pub fn get_audio_input_device() -> Device {
 }
 
 pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
-    let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-    // let model_path = "./models/vosk-model-small-en-us-0.15/";
- 
-    // println!("CREATE MODEL");
-    // let model = Model::new(model_path).unwrap();
-    println!("CREATE RECOGNIZER");
     let mut recognizer = Recognizer::new(&get_vosk_model(), sample_rate.0 as f32).unwrap();
-    let start = SystemTime::now();
-    println!("End time: {:?}", start);        
-
     println!("Vosk model loaded! It hears all...");
+
+    // start "timer" here
+    let transcription_start_time = Instant::now();
 
     loop {
         if let Ok(data) = audio_input_receiver.try_recv() {
@@ -49,6 +43,16 @@ pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: 
                 }
                 else if transcription != "huh".to_string() {
                     return Some(transcription);
+                }
+            }
+            else if decoding_state == DecodingState::Running {
+                // if partial result is nothing, and its been 3 seconds or more since the timer started, return None  
+                // without this, transcription will run until something has been said
+                let partial = recognizer.partial_result().partial;
+
+                if partial == "" && transcription_start_time.elapsed() >= Duration::from_secs(3) {
+                    println!("Nothing said after 3 seconds");
+                    return None
                 }
             }
         }

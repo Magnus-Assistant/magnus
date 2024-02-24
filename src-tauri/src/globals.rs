@@ -8,8 +8,8 @@ lazy_static! {
     static ref REQWEST_CLIENT: Client = Client::new();
     static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
     static ref VOSK_MODEL: Model = {
-        let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-        // let model_path = "./models/vosk-model-small-en-us-0.15/";
+        // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+        let model_path = "./models/vosk-model-small-en-us-0.15/";
      
         let model = Model::new(model_path).unwrap();
         model
