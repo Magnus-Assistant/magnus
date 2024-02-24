@@ -26,7 +26,7 @@ pub fn get_audio_input_device() -> Device {
 
 pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
     let mut recognizer = Recognizer::new(&get_vosk_model(), sample_rate.0 as f32).unwrap();
-    println!("Vosk model loaded! It hears all...");
+    println!("Speak..."); // eventually it would be nice to emit an audio cue telling the user they can speak
 
     // start "timer" here
     let transcription_start_time = Instant::now();
@@ -133,27 +133,24 @@ pub fn run() -> Option<String> {
     let audio_input_device = get_audio_input_device();
     let audio_input_config = audio_input_device.default_input_config().unwrap();
 
-    // spawn the transcription thread with details on the device we found
-    // let input_stream_running_clone = input_stream_running.clone();
+    // spawn the transcription thread
     let audio_input_receiver_clone = audio_input_receiver.clone();
     *transcribing.lock().unwrap() = true; 
     let transcription_handle = thread::spawn(move || {
         run_transcription(audio_input_receiver_clone, audio_input_config.sample_rate())
     });
 
-    // run input stream until there is some error
+    // run input stream until we are no longer transcribing
     let transcribing_clone = transcribing.clone();
     let audio_input_sender_clone = audio_input_sender.clone();
     let input_stream_handle = thread::spawn(move || {
         run_stream(audio_input_sender_clone, audio_input_device, transcribing_clone);
     });
 
-    println!("Waiting for transcription to end");
+    // wait for transcription and input streams to finish before returning the transcription
     let transcription = transcription_handle.join().unwrap();
     *transcribing.lock().unwrap() = false;
-    println!("Waiting for input stream to end");
-    let input_end = input_stream_handle.join().unwrap();
-    println!("All done");
+    let _ = input_stream_handle.join().unwrap();
 
     transcription
 }

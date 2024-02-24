@@ -4,6 +4,7 @@
 use crossbeam::channel::{bounded, Receiver, Sender};
 use tauri::GlobalShortcutManager;
 use std::thread;
+use std::sync::{Arc, Mutex};
 
 mod assistant;
 mod globals;
@@ -75,13 +76,14 @@ fn main() {
     });
     */
 
-    use std::sync::{Arc, Mutex};
-    use std::sync::atomic::{AtomicBool, Ordering};
-
-    let running_keybind_flow = Arc::new(Mutex::new(AtomicBool::new(false)));
+    let running_keybind_flow = Arc::new(Mutex::new(false));
 
     // loads the vosk model before the app builds
     let _ = globals::get_vosk_model();
+
+    tauri::async_runtime::block_on(async {
+        create_message_thread().await;
+    });
     
     tauri::Builder::default()
         .setup(move |app| {
@@ -89,32 +91,39 @@ fn main() {
             let mut shortcuts = app_handle.global_shortcut_manager();
             let running_keybind_flow_clone = running_keybind_flow.clone();
 
+            // keybind to begin mic input and assistant response flow, might make this adjustable later
             let _ = shortcuts.register("Alt+M", move || {
-                let running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
+                let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
 
-                // Check if a thread is already running
-                if running_keybind_flow.load(Ordering::SeqCst) {
-                    println!("A thread is already running.");
-                    return;
+                // limits this to one flow/thread at a time
+                if !*running_keybind_flow {
+                    *running_keybind_flow = true;
+                    let running_keybind_flow_clone = running_keybind_flow_clone.clone();
+                
+                    // begin flow
+                    tauri::async_runtime::spawn(async move {
+                        let transcription = audio_input::run();
+
+                        match transcription {
+                            Some(transcription) => {
+                                println!("User: {transcription}");
+                                let assistant_response = assistant::run(transcription).await;
+                                println!("Magnus: {assistant_response}");
+
+                                audio_output::speak(assistant_response).await;
+                            },
+                            None => println!("NONE")
+                        }
+
+                        let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
+                        *running_keybind_flow = false;
+                    });
                 }
-
-                // Set the flag to indicate a thread is running
-                running_keybind_flow.store(true, Ordering::SeqCst);
-
-                let running_keybind_flow_clone_inner = running_keybind_flow_clone.clone();
-
-                thread::spawn(move || {
-                    let transcription = audio_input::run();
-
-                    match transcription {
-                        Some(transcription) => println!("GOT T: {transcription}"),
-                        None => println!("NO T")
-                    }
-
-                    // Reset the flag when the thread is done
-                    running_keybind_flow_clone_inner.lock().unwrap().store(false, Ordering::SeqCst);
-                });
+                else {
+                    println!("Already running keybind flow!");
+                }
             });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
