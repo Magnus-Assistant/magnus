@@ -30,7 +30,7 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn create_message(user_message: String, /*has_tts: bool*/) -> String {
+async fn create_message(user_message: String) -> String {
     let data: Value = serde_json::json!({
         "role": "user",
         "content": user_message

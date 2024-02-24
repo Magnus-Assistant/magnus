@@ -43,7 +43,7 @@ function App() {
   }
 
   async function createMessage() {
-    await invoke('create_message', { userMessage: text, hasTts: shouldMic })
+    await invoke('create_message', { userMessage: text})
       .then((response) => {
         if (typeof (response) === 'string') {
           const newMessage: Message = { type: 'magnus', text: response }

@@ -24,8 +24,6 @@ pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver
                 "content": transcription
             });
 
-            println!("User Message in assistant run Fn: {}", message);
-
             // this is the create message we are using for audio input. Text is handle in main
             let _ = create_message(message, get_thread_id()).await;
 
@@ -43,7 +41,6 @@ pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver
             // speak response
             // TODO: Make this toggleable just like how main functions.
             // Maybe create a universal message struct that contains user and magnus messages and if it has TTS
-            println!("Creating speech: {}", response);
             let _ = create_speech(response, audio_output_sender.clone(), audio_output_config.sample_rate(), audio_output_config.channels()).await;
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -293,7 +290,6 @@ pub async fn create_speech(assistant_response: String, /*assistant_response_rece
             Err(e) => println!("Error reading packet: {e:#?}")
         }
     }
-    println!("Exiting create speech function");
     Ok(())
 }
 
