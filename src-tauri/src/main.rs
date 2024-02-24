@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crossbeam::channel::{bounded, Receiver, Sender};
+use tauri::GlobalShortcutManager;
 use std::thread;
 
 mod assistant;
@@ -56,6 +57,7 @@ async fn create_message(message: String) {
 fn main() {
     dotenv::dotenv().ok();
         
+    /* 
     let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
     // audio input
@@ -71,8 +73,27 @@ fn main() {
         });
         audio_output::run(transcription_receiver);
     });
+    */
 
+    // loads the vosk model before the app builds
+    let _ = globals::get_vosk_model();
+    
     tauri::Builder::default()
+        .setup(|app| {
+            let app_handle = app.handle();
+            let mut shortcuts = app_handle.global_shortcut_manager();
+            let _ = shortcuts.register("Alt+M", || {
+                thread::spawn(move || {
+                    let transcription = audio_input::run();
+
+                    match transcription {
+                        Some(transcription) => println!("GOT T: {transcription}"),
+                        None => println!("NO T")
+                    }
+                });
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             create_message
         ])

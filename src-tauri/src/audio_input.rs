@@ -6,6 +6,8 @@ use std::time::Duration;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 use vosk::{DecodingState, Model, Recognizer};
+use std::time::SystemTime;
+use crate::globals::get_vosk_model;
 
 pub fn get_audio_input_device() -> Device {
     let host = cpal::default_host();
@@ -22,31 +24,38 @@ pub fn get_audio_input_device() -> Device {
     audio_input_device
 }
 
-pub fn run_transcription(input_stream_running: Arc<Mutex<bool>>, audio_input_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
-    // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-    let model_path = "./models/vosk-model-small-en-us-0.15/";
+pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
+    let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+    // let model_path = "./models/vosk-model-small-en-us-0.15/";
+ 
+    // println!("CREATE MODEL");
+    // let model = Model::new(model_path).unwrap();
+    println!("CREATE RECOGNIZER");
+    let mut recognizer = Recognizer::new(&get_vosk_model(), sample_rate.0 as f32).unwrap();
+    let start = SystemTime::now();
+    println!("End time: {:?}", start);        
 
-    let model = Model::new(model_path).unwrap();
-    let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
     println!("Vosk model loaded! It hears all...");
 
-    while *input_stream_running.lock().unwrap() {
+    loop {
         if let Ok(data) = audio_input_receiver.try_recv() {
             let decoding_state = recognizer.accept_waveform(data.as_slice());
             if decoding_state == DecodingState::Finalized {
                 // silence detected
                 let transcription = recognizer.final_result().single().unwrap().text.to_string();
 
-                if !transcription.is_empty() && transcription != "huh".to_string() {
-                    transcription_sender.try_send(transcription).ok();
+                if transcription.is_empty() {
+                    return None
+                }
+                else if transcription != "huh".to_string() {
+                    return Some(transcription);
                 }
             }
         }
     }
 }
 
-
-fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
+fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device, transcribing: Arc<Mutex<bool>>) {
     let config = device.default_input_config().unwrap();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
 
@@ -97,55 +106,53 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn E
     }.expect("Failed to build audio input stream!");
 
     match stream.play() {
-        Ok(_) => println!("Successfully started audio input stream!"),
+        Ok(_) => {
+            println!("Successfully started audio input stream!")
+        },
         Err(error) => println!("Failed to start audio input stream: {}", error),
     }
 
     loop {
         if let Ok(stream_error) = error_receiver.try_recv() {
-            drop(stream);
-            return Box::new(stream_error)
+            println!("ERROR OCCURRED ON INPUT STREAM");
+            break
+        }
+        else if !*transcribing.lock().unwrap() {
+            println!("TRANSCRIPTION FINISHED, EXITING INPUT STREAM");
+            break
         }
     }
 }
 
-pub fn run(transcription_sender: Sender<String>) {
+pub fn run() -> Option<String> {
     let (audio_input_sender, audio_input_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
-    let input_stream_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    let transcribing: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
-    loop {
-        *input_stream_running.lock().unwrap() = true; 
+    // find an input device
+    let audio_input_device = get_audio_input_device();
+    let audio_input_config = audio_input_device.default_input_config().unwrap();
 
-        // find an input device
-        let audio_input_device = get_audio_input_device();
-        let audio_input_config = audio_input_device.default_input_config().unwrap();
+    // spawn the transcription thread with details on the device we found
+    // let input_stream_running_clone = input_stream_running.clone();
+    let audio_input_receiver_clone = audio_input_receiver.clone();
+    *transcribing.lock().unwrap() = true; 
+    let transcription_handle = thread::spawn(move || {
+        run_transcription(audio_input_receiver_clone, audio_input_config.sample_rate())
+    });
 
-        // spawn the transcription thread with details on the device we found
-        let input_stream_running_clone = input_stream_running.clone();
-        let audio_input_receiver_clone = audio_input_receiver.clone();
-        let transcription_sender_clone = transcription_sender.clone();
-        thread::spawn(move || {
-            run_transcription(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
-        });
+    // run input stream until there is some error
+    let transcribing_clone = transcribing.clone();
+    let audio_input_sender_clone = audio_input_sender.clone();
+    let input_stream_handle = thread::spawn(move || {
+        run_stream(audio_input_sender_clone, audio_input_device, transcribing_clone);
+    });
 
-        // run input stream until there is some error
-        let error = run_stream(audio_input_sender.clone(), audio_input_device);
+    println!("Waiting for transcription to end");
+    let transcription = transcription_handle.join().unwrap();
+    *transcribing.lock().unwrap() = false;
+    println!("Waiting for input stream to end");
+    let input_end = input_stream_handle.join().unwrap();
+    println!("All done");
 
-        // stop transcription thread when there is an error with the input stream
-        *input_stream_running.lock().unwrap() = false;
-        
-        // many different potential errors can occur, maybe we handle them each differently??
-        if let Some(stream_error) = error.downcast_ref::<StreamError>() {
-            match stream_error {
-                StreamError::DeviceNotAvailable => println!("Input device disconnected!"),
-                StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
-            }
-        }
-        else if let Some(build_stream_error) = error.downcast_ref::<BuildStreamError>() {
-            match build_stream_error {
-                BuildStreamError::StreamConfigNotSupported => println!("Some build stream error!"),
-                _ => println!("Some build stream error!")
-            }
-        }
-    }
+    transcription
 }
