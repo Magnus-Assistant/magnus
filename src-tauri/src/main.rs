@@ -75,14 +75,34 @@ fn main() {
     });
     */
 
+    use std::sync::{Arc, Mutex};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let running_keybind_flow = Arc::new(Mutex::new(AtomicBool::new(false)));
+
     // loads the vosk model before the app builds
     let _ = globals::get_vosk_model();
     
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(move |app| {
             let app_handle = app.handle();
             let mut shortcuts = app_handle.global_shortcut_manager();
-            let _ = shortcuts.register("Alt+M", || {
+            let running_keybind_flow_clone = running_keybind_flow.clone();
+
+            let _ = shortcuts.register("Alt+M", move || {
+                let running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
+
+                // Check if a thread is already running
+                if running_keybind_flow.load(Ordering::SeqCst) {
+                    println!("A thread is already running.");
+                    return;
+                }
+
+                // Set the flag to indicate a thread is running
+                running_keybind_flow.store(true, Ordering::SeqCst);
+
+                let running_keybind_flow_clone_inner = running_keybind_flow_clone.clone();
+
                 thread::spawn(move || {
                     let transcription = audio_input::run();
 
@@ -90,6 +110,9 @@ fn main() {
                         Some(transcription) => println!("GOT T: {transcription}"),
                         None => println!("NO T")
                     }
+
+                    // Reset the flag when the thread is done
+                    running_keybind_flow_clone_inner.lock().unwrap().store(false, Ordering::SeqCst);
                 });
             });
             Ok(())
