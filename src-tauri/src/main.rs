@@ -30,7 +30,7 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn create_message(user_message: String, has_tts: bool) -> String {
+async fn create_message(user_message: String, /*has_tts: bool*/) -> String {
     let data: Value = serde_json::json!({
         "role": "user",
         "content": user_message
@@ -56,7 +56,8 @@ async fn create_message(user_message: String, has_tts: bool) -> String {
         .unwrap();
 
     // speak
-    println!("Has TTS: {}", has_tts);
+    // TODO: Update this when new audio and TTS logic is implemented
+    /* println!("Has TTS: {}", has_tts);
     if has_tts == true {
         println!("Entered TTS logic");
         let sender = TRANSCRIPTION_CHANNEL.0.clone();
@@ -74,6 +75,7 @@ async fn create_message(user_message: String, has_tts: bool) -> String {
             }
         }
     }
+    */
     response.trim_matches('"').to_string()
 }
 

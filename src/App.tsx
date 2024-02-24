@@ -1,13 +1,11 @@
 import { invoke } from "@tauri-apps/api/tauri"
-import "./App.css"
 import React, { FormEvent, useState } from 'react'
 import ChatFrame, { Message, scrollToBottom } from "./components/chatFrame/chatFrame";
-import TtsButton from "./components/ttsToggleButton/TtsToggleButton";
 
 function App() {
   const [text, setText] = useState<string>('')
   const [messages, setMessages] = useState<{ type: 'magnus' | 'user'; text: string }[]>([]);
-  const [shouldTts, setShouldTts] = useState(false);
+  const [shouldMic, setShouldMic] = useState(false);
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -29,23 +27,23 @@ function App() {
     }
   };
 
-  const handleTtsClick = () => {
-    const button = document.getElementById('ttsButton');
+  const handlMicClick = () => {
+    const button = document.getElementById('micButton');
     if (button) {
-    if (shouldTts) {
-      setShouldTts(false)
-      button.style.color = "white";
-      button.style.backgroundColor = '#0f0f0f'
-    } else {
-      setShouldTts(true)
-      button.style.color = "black";
-      button.style.backgroundColor = 'red';
+      if (shouldMic) {
+        setShouldMic(false)
+        button.style.filter = "invert(100%)"
+        console.log("Collecting Audio")
+      } else {
+        setShouldMic(true)
+        button.style.filter = "invert(0%)"
+        console.log("Audio Collecting Turned Off")
+      }
     }
   }
-}
 
   async function createMessage() {
-    await invoke('create_message', { userMessage: text, hasTts: shouldTts })
+    await invoke('create_message', { userMessage: text, hasTts: shouldMic })
       .then((response) => {
         if (typeof (response) === 'string') {
           const newMessage: Message = { type: 'magnus', text: response }
@@ -59,7 +57,7 @@ function App() {
     <div className="container">
       <ChatFrame initialMessages={messages}></ChatFrame>
       <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 10, marginBottom: 10 }}>
-        <TtsButton onClick={handleTtsClick}></TtsButton>
+        <button id="micButton" type="button" onClick={handlMicClick}>-</button>
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>
       </form>
