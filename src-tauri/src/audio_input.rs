@@ -1,11 +1,10 @@
 use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, FromSample, Sample, SampleRate, StreamError};
+use cpal::{Device, FromSample, Sample, SampleRate, StreamError};
 use std::thread;
 use std::time::Duration;
-use std::error::Error;
 use std::sync::{Arc, Mutex};
-use vosk::{DecodingState, Model, Recognizer};
+use vosk::{DecodingState, Recognizer};
 use std::time::Instant;
 use crate::globals::get_vosk_model;
 
@@ -114,7 +113,7 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device, transcribing
     }
 
     loop {
-        if let Ok(stream_error) = error_receiver.try_recv() {
+        if let Ok(_stream_error) = error_receiver.try_recv() {
             println!("ERROR OCCURRED ON INPUT STREAM");
             break
         }

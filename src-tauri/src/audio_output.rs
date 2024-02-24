@@ -81,52 +81,7 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device, syn
         }
     }
 }
-/* 
-pub fn run(transcription_receiver: Receiver<String>) {
-    let output_stream_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
-    let (audio_output_sender, audio_output_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = crossbeam::channel::unbounded::<Vec<i16>>();
 
-    loop {
-        *output_stream_running.lock().unwrap() = true;
-
-        // find an output device
-        let audio_output_device = get_audio_output_device();
-        let audio_output_config = audio_output_device.default_output_config().unwrap();
-
-        // must create clones for these types to be moved to the async runtime
-        let output_stream_running_clone = output_stream_running.clone();
-        let transcription_receiver_clone = transcription_receiver.clone();
-        let audio_output_sender_clone = audio_output_sender.clone();
-
-        // spawn assistant async runtime
-        // thread::spawn(move || {
-        //     tauri::async_runtime::spawn(async move {
-        //         assistant::run(output_stream_running_clone, transcription_receiver_clone, audio_output_sender_clone, audio_output_config).await;
-        //     });
-        // });
-
-        // run output stream until there is some error
-        // let error = run_stream(audio_output_receiver.clone(), audio_output_device);
-
-        // once there is an error with the output stream, stop the assistant runtime
-        *output_stream_running.lock().unwrap() = false;
-
-        // many different potential errors can occur, maybe we handle them each differently??
-        if let Some(stream_error) = error.downcast_ref::<StreamError>() {
-            match stream_error {
-                StreamError::DeviceNotAvailable => println!("Output device disconnected!"),
-                StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
-            }
-        }
-        else if let Some(build_stream_error) = error.downcast_ref::<BuildStreamError>() {
-            match build_stream_error {
-                BuildStreamError::StreamConfigNotSupported => println!("Some build stream error!"),
-                _ => println!("Some build stream error!")
-            }
-        }
-    }
-}
-*/
 pub async fn speak(assistant_message: String) -> Result<(), Box<dyn Error>> {
     // create speech sender and receiver
     let (audio_output_sender, audio_output_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = crossbeam::channel::unbounded::<Vec<i16>>();

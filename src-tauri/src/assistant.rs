@@ -3,12 +3,12 @@ use crate::tools;
 use reqwest::Error;
 use std::thread;
 use std::time::Duration;
-use crossbeam::channel::{Receiver, Sender};
+use crossbeam::channel::Sender;
 use reqwest::header::TRANSFER_ENCODING;
 use opus::Decoder;
 use ogg::reading::async_api::PacketReader;
 use tokio_util::io::StreamReader;
-use cpal::{SampleRate, SupportedStreamConfig};
+use cpal::SampleRate;
 use tokio_stream::StreamExt;
 
 pub async fn run(user_message: String) -> String {

@@ -1,9 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crossbeam::channel::{bounded, Receiver, Sender};
 use tauri::GlobalShortcutManager;
-use std::thread;
 use std::sync::{Arc, Mutex};
 
 mod assistant;
@@ -29,56 +27,22 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn create_message(message: String) {
-    let data = serde_json::json!({
-        "role": "user",
-        "content": message
-    });
+async fn run_conversation_flow(user_message: String) {
+    println!("User: {user_message}");
+    let assistant_message = assistant::run(user_message).await;
+    println!("Magnus: {assistant_message}");
 
-    // add message to the thread of messages
-    let _ = assistant::create_message(data, globals::get_thread_id()).await;
+    let _ = audio_output::speak(assistant_message.clone()).await;
 
-    // create a run id
-    let run_id: String = assistant::create_run(globals::get_thread_id())
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Error occurred: {:?}", err);
-        });
-
-    // run the thread and wait for it to finish
-    let _ = assistant::run_and_wait(&run_id, globals::get_thread_id()).await;
-
-    // get response from the assistant
-    let response = assistant::get_assistant_last_response(globals::get_thread_id()).await.unwrap();
-
-    // speak
-    // let _ = tts_utils::speak(response, ).await;
+    // emit assistant message to frontend
 }
 
 fn main() {
     dotenv::dotenv().ok();
-        
-    /* 
-    let (transcription_sender, transcription_receiver): (Sender<String>, Receiver<String>) = bounded::<String>(1);
 
-    // audio input
-    thread::spawn(move || {
-        audio_input::run(transcription_sender.clone());
-    });
-
-    // assistant and audio output
-    thread::spawn(move || {
-        // create a message thread first
-        tauri::async_runtime::block_on(async {
-            create_message_thread().await;
-        });
-        audio_output::run(transcription_receiver);
-    });
-    */
-
+    // setups before app build
     let running_keybind_flow = Arc::new(Mutex::new(false));
 
-    // loads the vosk model before the app builds
     let _ = globals::get_vosk_model();
 
     tauri::async_runtime::block_on(async {
@@ -105,13 +69,7 @@ fn main() {
                         let transcription = audio_input::run();
 
                         match transcription {
-                            Some(transcription) => {
-                                println!("User: {transcription}");
-                                let assistant_response = assistant::run(transcription).await;
-                                println!("Magnus: {assistant_response}");
-
-                                audio_output::speak(assistant_response).await;
-                            },
+                            Some(transcription) => run_conversation_flow(transcription).await,
                             None => println!("NONE")
                         }
 
@@ -127,7 +85,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            create_message
+            run_conversation_flow
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
