@@ -29,9 +29,11 @@ pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: 
 
     // start "timer" here
     let transcription_start_time = Instant::now();
+    let mut data_last_received = Instant::now();
 
     loop {
-        if let Ok(data) = audio_input_receiver.try_recv() {
+        if let Ok(data) = audio_input_receiver.try_recv() { 
+            data_last_received = Instant::now();
             let decoding_state = recognizer.accept_waveform(data.as_slice());
             if decoding_state == DecodingState::Finalized {
                 // silence detected
@@ -51,6 +53,10 @@ pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: 
                     return None
                 }
             }
+        }
+        else if data_last_received.elapsed() >= Duration::from_secs(3) {
+            println!("No audio received for 3 seconds, exitiing transcription.");
+            return None
         }
     }
 }
@@ -118,7 +124,7 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device, transcribing
             break
         }
         else if !*transcribing.lock().unwrap() {
-            println!("TRANSCRIPTION FINISHED, EXITING INPUT STREAM");
+            println!("Transcription finished, exiting input stream.");
             break
         }
     }

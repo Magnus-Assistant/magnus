@@ -1,7 +1,7 @@
 use crate::assistant;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, Sample, StreamError, FromSample};
+use cpal::{Device, Sample, StreamError, FromSample};
 use std::{collections::VecDeque, error::Error, sync::{Arc, Mutex}, thread, time::Duration};
 
 pub fn get_audio_output_device() -> Device {
@@ -104,7 +104,7 @@ pub async fn speak(assistant_message: String) -> Result<(), Box<dyn Error>> {
     });
 
     // wait for the threads to finish
-    let asdf = create_speech_handle.await;
+    let _ = create_speech_handle.await;
     *synthesizing.lock().unwrap() = false;
     output_stream_handle.join().unwrap();
 
