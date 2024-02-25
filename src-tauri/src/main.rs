@@ -27,14 +27,25 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn run_conversation_flow(user_message: String) {
-    println!("User: {user_message}");
-    let assistant_message = assistant::run(user_message).await;
-    println!("Magnus: {assistant_message}");
+async fn run_conversation_flow(user_message: Option<String>) {
+    // if we have no user message, attempt to get speech input
+    let user_message = match user_message {
+        Some(message) => Some(message),
+        None => audio_input::run()
+    };
 
-    let _ = audio_output::speak(assistant_message.clone()).await;
+    // if there is a user message from either text or speech input, run the flow
+    match user_message {
+        Some(user_message) => {
+            println!("User: {user_message}");
+            let assistant_message = assistant::run(user_message).await;
+            println!("Magnus: {assistant_message}");
+            let _ = audio_output::speak(assistant_message.clone()).await;
 
-    // emit assistant message to frontend
+            // emit assistant message to frontend
+        },
+        None => {}
+    }
 }
 
 fn main() {
@@ -66,13 +77,7 @@ fn main() {
                 
                     // begin flow
                     tauri::async_runtime::spawn(async move {
-                        let transcription = audio_input::run();
-
-                        match transcription {
-                            Some(transcription) => run_conversation_flow(transcription).await,
-                            None => println!("NONE")
-                        }
-
+                        run_conversation_flow(None).await;
                         let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
                         *running_keybind_flow = false;
                     });
