@@ -21,8 +21,8 @@ function App() {
       console.log("Form Submit Messages: ", messages)
       setTimeout(scrollToBottom, 30);
 
-      //clear input field      
-      createMessage();
+      //dont use the microphone   
+      runConversationFlow(false);
       setText('');
     }
   };
@@ -33,6 +33,8 @@ function App() {
       if (shouldMic) {
         setShouldMic(false)
         button.style.filter = "invert(100%)"
+        //use the microphone
+        runConversationFlow(true);
         console.log("Collecting Audio")
       } else {
         setShouldMic(true)
@@ -42,8 +44,10 @@ function App() {
     }
   }
 
-  async function createMessage() {
-    await invoke('create_message', { userMessage: text})
+  async function runConversationFlow(use_mic?: boolean) {
+    // if we shouldnt use the mic use the local text state contents
+    if (!use_mic) {
+    await invoke('run_conversation_flow', { userMessage: text})
       .then((response) => {
         if (typeof (response) === 'string') {
           const newMessage: Message = { type: 'magnus', text: response }
@@ -51,6 +55,17 @@ function App() {
           console.log("Create Message Command Messages: ", messages)
         }
       })
+      // if we should use the mic don't pass in any text to use
+    } else {
+      await invoke('run_conversation_flow', { userMessage: null})
+      .then((response) => {
+        if (typeof (response) === 'string') {
+          const newMessage: Message = { type: 'magnus', text: response }
+          setMessages((prevMessages) => [...prevMessages, newMessage])
+          console.log("Create Message Command Messages: ", messages)
+        }
+      })
+    }
   }
 
   return (
