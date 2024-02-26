@@ -2,49 +2,34 @@ use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thr
 use crate::tools;
 use reqwest::Error;
 use std::time::Duration;
-use crossbeam::channel::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use crossbeam::channel::Sender;
 use reqwest::header::TRANSFER_ENCODING;
 use opus::Decoder;
 use ogg::reading::async_api::PacketReader;
 use tokio_util::io::StreamReader;
-use cpal::{SampleRate, SupportedStreamConfig};
+use cpal::SampleRate;
 use tokio_stream::StreamExt;
 
-pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver: Receiver<String>, audio_output_sender: Sender<Vec<i16>>, audio_output_config: SupportedStreamConfig /* , assistant_response_sender: Sender<String>*/) {
-    // continue to run as long as the output stream is running also
-    while *output_stream_running.lock().unwrap() {
-        // receive speech transcription from vosk
-        if let Ok(transcription) = transcription_receiver.try_recv() {
 
-            //could emit transcription here for the user
+pub async fn run(user_message: String) -> String {
+    let message = serde_json::json!({
+        "role": "user",
+        "content": user_message
+    });
 
-            let message = serde_json::json!({
-                "role": "user",
-                "content": transcription
-            });
+    let _ = create_message(message, get_thread_id()).await;
 
-            // this is the create message we are using for audio input. Text is handle in main
-            let _ = create_message(message, get_thread_id()).await;
+    let run_id: String = create_run(get_thread_id())
+        .await
+        .unwrap_or_else(|err| {
+            panic!("Error occurred: {:?}", err);
+        });
 
-            let run_id: String = create_run(get_thread_id())
-                .await
-                .unwrap_or_else(|err| {
-                    panic!("Error occurred: {:?}", err);
-                });
-            
-            let _ = run_and_wait(&run_id, get_thread_id()).await;
+    let _ = run_and_wait(&run_id, get_thread_id()).await;
 
-            let response = get_assistant_last_response(get_thread_id()).await.unwrap();
-            //could emit the reponse from assistant here 
+    let assistant_response = get_assistant_last_response(get_thread_id()).await.unwrap();
 
-            // speak response
-            // TODO: Make this toggleable just like how main functions.
-            // Maybe create a universal message struct that contains user and magnus messages and if it has TTS
-            let _ = create_speech(response, audio_output_sender.clone(), audio_output_config.sample_rate(), audio_output_config.channels()).await;
-        }
-        tokio::time::sleep(Duration::from_secs(1)).await;
-    }
+    assistant_response
 } 
 
 pub async fn create_message_thread() -> Result<String, Error> {
@@ -73,7 +58,7 @@ pub async fn create_message(user_message: serde_json::Value, thread_id: String) 
         .json(&user_message)
         .send()
         .await?;
-    println!("User: {}", user_message["content"]);
+
     Ok(())
 }
 
@@ -208,7 +193,6 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
     let messages = response.json::<serde_json::Value>().await?;
 
     let assistant_response = messages["data"][0]["content"][0]["text"]["value"].to_string();
-    println!("Magnus: {assistant_response}");
     
     Ok(assistant_response)
 }
@@ -236,7 +220,7 @@ pub async fn print_messages(thread_id: String) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn create_speech(assistant_response: String, /*assistant_response_receiver: Receiver<String>,*/ audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
+pub async fn create_speech(assistant_message: String, audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
     let channels: opus::Channels = match channels {
         1 => opus::Channels::Mono,
         2 => opus::Channels::Stereo,
@@ -246,7 +230,7 @@ pub async fn create_speech(assistant_response: String, /*assistant_response_rece
 
     let data = serde_json::json!({
         "model": "tts-1",
-        "input": assistant_response,
+        "input": assistant_message,
         "voice": "echo",
         "response_format": "opus"
     });

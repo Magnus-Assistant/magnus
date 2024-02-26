@@ -5,6 +5,8 @@ use crossbeam::channel::{bounded, Receiver, Sender};
 use lazy_static::lazy_static;
 use serde_json::Value;
 use std::thread;
+use tauri::GlobalShortcutManager;
+use std::sync::{Arc, Mutex};
 
 mod assistant;
 mod audio_input;
@@ -30,75 +32,72 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn create_message(user_message: String) -> String {
-    let data: Value = serde_json::json!({
-        "role": "user",
-        "content": user_message
-    });
-    let cloned_user_data = data.clone();
+async fn run_conversation_flow(user_message: Option<String>) {
+    // if we have no user message, attempt to get speech input
+    let user_message = match user_message {
+        Some(message) => Some(message),
+        None => audio_input::run()
+    };
 
-    // add message to the thread of messages
-    let _ = assistant::create_message(cloned_user_data, globals::get_thread_id()).await;
+    // if there is a user message from either text or speech input, run the flow
+    match user_message {
+        Some(user_message) => {
+            println!("User: {user_message}");
+            let assistant_message = assistant::run(user_message).await;
+            println!("Magnus: {assistant_message}");
+            let _ = audio_output::speak(assistant_message.clone()).await;
 
-    // create a run id
-    let run_id: String = assistant::create_run(globals::get_thread_id())
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Error occurred: {:?}", err);
-        });
-
-    // run the thread and wait for it to finish
-    let _ = assistant::run_and_wait(&run_id, globals::get_thread_id()).await;
-
-    // get response from the assistant
-    let response = assistant::get_assistant_last_response(globals::get_thread_id())
-        .await
-        .unwrap();
-
-    // speak
-    // TODO: Update this when new audio and TTS logic is implemented
-    /* println!("Has TTS: {}", has_tts);
-    if has_tts == true {
-        println!("Entered TTS logic");
-        let sender = TRANSCRIPTION_CHANNEL.0.clone();
-
-        println!("We should be TTSing");
-        match sender.try_send(user_message.clone()) {
-            Ok(_) => {
-                println!(
-                    "Successfully sent this text over t_sender: {}",
-                    user_message.clone()
-                )
-            }
-            Err(err) => {
-                println!("Error sending input text to TTS: {}", err);
-            }
-        }
+            // emit assistant message to frontend
+        },
+        None => {}
     }
-    */
-    response.trim_matches('"').to_string()
 }
 
 fn main() {
     dotenv::dotenv().ok();
-    let (transcription_sender, transcription_receiver) = &*TRANSCRIPTION_CHANNEL;
 
-    // audio input
-    thread::spawn(move || {
-        audio_input::run(transcription_sender.clone());
+    // setups before app build
+    let running_keybind_flow = Arc::new(Mutex::new(false));
+
+
+    let _ = globals::get_vosk_model();
+
+    tauri::async_runtime::block_on(async {
+        create_message_thread().await;
     });
-
-    // assistant and audio output
-    thread::spawn(move || {
-        // create a message thread first
-        tauri::async_runtime::block_on(async {
-            create_message_thread().await;
-        });
-        audio_output::run(transcription_receiver.clone());
-    });
-
+    
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![create_message])
+        .setup(move |app| {
+            let app_handle = app.handle();
+            let mut shortcuts = app_handle.global_shortcut_manager();
+            let running_keybind_flow_clone = running_keybind_flow.clone();
+
+            // keybind to begin mic input and assistant response flow, might make this adjustable later
+            let _ = shortcuts.register("Alt+M", move || {
+                let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
+
+                // limits this to one flow/thread at a time
+                if !*running_keybind_flow {
+                    *running_keybind_flow = true;
+                    let running_keybind_flow_clone = running_keybind_flow_clone.clone();
+                
+                    // begin flow
+                    tauri::async_runtime::spawn(async move {
+                        run_conversation_flow(None).await;
+                        let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
+                        *running_keybind_flow = false;
+                    });
+                }
+                else {
+                    println!("Already running keybind flow!");
+                }
+            });
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            run_conversation_flow
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

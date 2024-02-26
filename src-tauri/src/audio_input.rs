@@ -1,11 +1,12 @@
 use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, FromSample, Sample, SampleRate, StreamError};
+use cpal::{Device, FromSample, Sample, SampleRate, StreamError};
 use std::thread;
 use std::time::Duration;
-use std::error::Error;
 use std::sync::{Arc, Mutex};
-use vosk::{DecodingState, Model, Recognizer};
+use vosk::{DecodingState, Recognizer};
+use std::time::Instant;
+use crate::globals::get_vosk_model;
 
 pub fn get_audio_input_device() -> Device {
     let host = cpal::default_host();
@@ -22,31 +23,45 @@ pub fn get_audio_input_device() -> Device {
     audio_input_device
 }
 
-pub fn run_transcription(input_stream_running: Arc<Mutex<bool>>, audio_input_receiver: Receiver<Vec<i16>>, transcription_sender: Sender<String>, sample_rate: SampleRate) {
-    // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-    let model_path = "./models/vosk-model-small-en-us-0.15/";
+pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
+    let mut recognizer = Recognizer::new(&get_vosk_model(), sample_rate.0 as f32).unwrap();
+    println!("Speak..."); // eventually it would be nice to emit an audio cue telling the user they can speak
 
-    let model = Model::new(model_path).unwrap();
-    let mut recognizer = Recognizer::new(&model, sample_rate.0 as f32).unwrap();
-    println!("Vosk model loaded! It hears all...");
+    // start "timer" here
+    let transcription_start_time = Instant::now();
+    let mut data_last_received = Instant::now();
 
-    while *input_stream_running.lock().unwrap() {
-        if let Ok(data) = audio_input_receiver.try_recv() {
+    loop {
+        if let Ok(data) = audio_input_receiver.try_recv() { 
+            data_last_received = Instant::now();
             let decoding_state = recognizer.accept_waveform(data.as_slice());
             if decoding_state == DecodingState::Finalized {
                 // silence detected
                 let transcription = recognizer.final_result().single().unwrap().text.to_string();
 
-                if !transcription.is_empty() && transcription != "huh".to_string() {
-                    transcription_sender.try_send(transcription).ok();
+                if transcription != "huh".to_string() {
+                    return Some(transcription);
                 }
             }
+            else if decoding_state == DecodingState::Running {
+                // if partial result is nothing and its been 3 seconds or more since the timer started, return None  
+                // without this, transcription will run until something has been said
+                let partial = recognizer.partial_result().partial;
+
+                if partial == "" && transcription_start_time.elapsed() >= Duration::from_secs(3) {
+                    println!("Nothing said after 3 seconds");
+                    return None
+                }
+            }
+        }
+        else if data_last_received.elapsed() >= Duration::from_secs(3) {
+            println!("No audio received for 3 seconds, exitiing transcription.");
+            return None
         }
     }
 }
 
-
-fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn Error> {
+fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device, transcribing: Arc<Mutex<bool>>) {
     let config = device.default_input_config().unwrap();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
 
@@ -97,56 +112,51 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device) -> Box<dyn E
     }.expect("Failed to build audio input stream!");
 
     match stream.play() {
-        Ok(_) => println!("Successfully started audio input stream!"),
+        Ok(_) => {
+            println!("Successfully started audio input stream!")
+        },
         Err(error) => println!("Failed to start audio input stream: {}", error),
     }
 
     loop {
-        if let Ok(stream_error) = error_receiver.try_recv() {
-            drop(stream);
-            return Box::new(stream_error)
+        if let Ok(_stream_error) = error_receiver.try_recv() {
+            println!("ERROR OCCURRED ON INPUT STREAM");
+            break
+        }
+        else if !*transcribing.lock().unwrap() {
+            println!("Transcription finished, exiting input stream.");
+            break
         }
         thread::sleep(Duration::from_secs(1));
     }
 }
 
-pub fn run(transcription_sender: Sender<String>) {
+pub fn run() -> Option<String> {
     let (audio_input_sender, audio_input_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = bounded::<Vec<i16>>(1);
-    let input_stream_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    let transcribing: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
-    loop {
-        *input_stream_running.lock().unwrap() = true; 
+    // find an input device
+    let audio_input_device = get_audio_input_device();
+    let audio_input_config = audio_input_device.default_input_config().unwrap();
 
-        // find an input device
-        let audio_input_device = get_audio_input_device();
-        let audio_input_config = audio_input_device.default_input_config().unwrap();
+    // spawn the transcription thread
+    let audio_input_receiver_clone = audio_input_receiver.clone();
+    *transcribing.lock().unwrap() = true; 
+    let transcription_handle = thread::spawn(move || {
+        run_transcription(audio_input_receiver_clone, audio_input_config.sample_rate())
+    });
 
-        // spawn the transcription thread with details on the device we found
-        let input_stream_running_clone = input_stream_running.clone();
-        let audio_input_receiver_clone = audio_input_receiver.clone();
-        let transcription_sender_clone = transcription_sender.clone();
-        thread::spawn(move || {
-            run_transcription(input_stream_running_clone, audio_input_receiver_clone, transcription_sender_clone, audio_input_config.sample_rate());
-        });
+    // run input stream until we are no longer transcribing
+    let transcribing_clone = transcribing.clone();
+    let audio_input_sender_clone = audio_input_sender.clone();
+    let input_stream_handle = thread::spawn(move || {
+        run_stream(audio_input_sender_clone, audio_input_device, transcribing_clone);
+    });
 
-        // run input stream until there is some error
-        let error = run_stream(audio_input_sender.clone(), audio_input_device);
+    // wait for transcription and input streams to finish before returning the transcription
+    let transcription = transcription_handle.join().unwrap();
+    *transcribing.lock().unwrap() = false;
+    let _ = input_stream_handle.join().unwrap();
 
-        // stop transcription thread when there is an error with the input stream
-        *input_stream_running.lock().unwrap() = false;
-        
-        // many different potential errors can occur, maybe we handle them each differently??
-        if let Some(stream_error) = error.downcast_ref::<StreamError>() {
-            match stream_error {
-                StreamError::DeviceNotAvailable => println!("Input device disconnected!"),
-                StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
-            }
-        }
-        else if let Some(build_stream_error) = error.downcast_ref::<BuildStreamError>() {
-            match build_stream_error {
-                BuildStreamError::StreamConfigNotSupported => println!("Some build stream error!"),
-                _ => println!("Some build stream error!")
-            }
-        }
-    }
+    transcription
 }
