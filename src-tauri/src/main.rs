@@ -3,10 +3,9 @@
 
 use crossbeam::channel::{bounded, Receiver, Sender};
 use lazy_static::lazy_static;
-use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tauri::{async_runtime, App, AppHandle, GlobalShortcutManager, Manager};
+use tauri::{AppHandle, GlobalShortcutManager, Manager};
 use tokio::runtime::Runtime;
 
 mod assistant;
@@ -49,10 +48,10 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
     match user_message {
         Some(user_message) => {
             println!("User: {user_message}");
-            let _ = app_handle.emit_all("message", Payload { message: user_message.clone() });
+            let _ = app_handle.emit_all("user", Payload { message: user_message.clone() });
             let assistant_message = assistant::run(user_message).await;
             println!("Magnus: {assistant_message}");
-            let _ = app_handle.emit_all("message", Payload { message: assistant_message.clone() });
+            let _ = app_handle.emit_all("magnus", Payload { message: assistant_message.clone()});
 
             let assistant_message_clone = assistant_message.clone();
             thread::spawn(move || {

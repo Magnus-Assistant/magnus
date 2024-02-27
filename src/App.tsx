@@ -1,20 +1,17 @@
 import { invoke } from "@tauri-apps/api/tauri"
-import { emit, listen } from '@tauri-apps/api/event'
-import React, { FormEvent, useState } from 'react'
+import { emit, listen, once } from '@tauri-apps/api/event'
+import React, { FormEvent, useEffect, useState } from 'react'
 import ChatFrame, { Message, scrollToBottom } from "./components/chatFrame/chatFrame";
 
 type Payload = {
   message: string;
 };
 
-const unlisten = await listen<Payload>("message", (event) => {
-    console.log(event.payload)
-})
-
 function App() {
   const [text, setText] = useState<string>('')
   const [messages, setMessages] = useState<{ type: 'magnus' | 'user'; text: string }[]>([]);
   const [shouldMic, setShouldMic] = useState(false);
+  const [listenerCreated, setListenerCreated] = useState(false);
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -56,26 +53,50 @@ function App() {
   async function runConversationFlow(use_mic?: boolean) {
     // if we shouldnt use the mic use the local text state contents
     if (!use_mic) {
-    await invoke('run_conversation_flow', { userMessage: text})
-      .then((response) => {
-        if (typeof (response) === 'string') {
-          const newMessage: Message = { type: 'magnus', text: response }
-          setMessages((prevMessages) => [...prevMessages, newMessage])
-          console.log("Create Message Command Messages: ", messages)
-        }
-      })
-      // if we should use the mic don't pass in any text to use
+      await invoke('run_conversation_flow', { userMessage: text })
+        .then((response) => {
+          if (typeof (response) === 'string') {
+            const newMessage: Message = { type: 'magnus', text: response }
+            setMessages((prevMessages) => [...prevMessages, newMessage])
+          }
+        })
+      // if we should use the mic don't pass in any text to use and grab the transcription
     } else {
-      await invoke('run_conversation_flow', { userMessage: null})
-      .then((response) => {
-        if (typeof (response) === 'string') {
-          const newMessage: Message = { type: 'magnus', text: response }
-          setMessages((prevMessages) => [...prevMessages, newMessage])
-          console.log("Create Message Command Messages: ", messages)
-        }
-      })
+      await invoke('run_conversation_flow', { userMessage: null })
+        .then((response) => {
+          if (typeof (response) === 'string') {
+            const newMessage: Message = { type: 'magnus', text: response }
+            setMessages((prevMessages) => [...prevMessages, newMessage])
+          }
+        })
     }
   }
+
+  useEffect(() => {
+    if (!listenerCreated) {
+      console.log("WE ARE RUNNNING")
+      const grabTranscription = async () => {
+        console.log("create user once")
+        await once<Payload>("user", (response) => {
+          if (typeof (response.payload.message) === 'string') {
+            const newMessage: Message = { type: 'user', text: response.payload.message }
+            setMessages((prevMessages) => [...prevMessages, newMessage])
+          }
+        });
+
+        console.log("create magnus once")
+        await once<Payload>("magnus", (response) => {
+          if (typeof (response.payload.message) === 'string') {
+            const newMessage: Message = { type: 'magnus', text: response.payload.message }
+            setMessages((prevMessages) => [...prevMessages, newMessage])
+          }
+        setListenerCreated(false);
+        })
+      }
+      grabTranscription();
+      setListenerCreated(true);
+    }
+  }, [listenerCreated])
 
   return (
     <div className="container">
