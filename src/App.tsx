@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/tauri"
-import { emit, listen, once } from '@tauri-apps/api/event'
-import React, { FormEvent, useEffect, useState } from 'react'
+import { listen } from '@tauri-apps/api/event'
+import React, { FormEvent, useEffect, useRef, useState } from 'react'
 import ChatFrame, { Message, scrollToBottom } from "./components/chatFrame/chatFrame";
 
 type Payload = {
@@ -11,7 +11,6 @@ function App() {
   const [text, setText] = useState<string>('')
   const [messages, setMessages] = useState<{ type: 'magnus' | 'user'; text: string }[]>([]);
   const [shouldMic, setShouldMic] = useState(false);
-  const [listenerCreated, setListenerCreated] = useState(false);
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -53,50 +52,42 @@ function App() {
   async function runConversationFlow(use_mic?: boolean) {
     // if we shouldnt use the mic use the local text state contents
     if (!use_mic) {
-      await invoke('run_conversation_flow', { userMessage: text })
+      await invoke('run_conversation_flow', { userMessage: text, keybind: false })
         .then((response) => {
           if (typeof (response) === 'string') {
             const newMessage: Message = { type: 'magnus', text: response }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
         })
-      // if we should use the mic don't pass in any text to use and grab the transcription
+      // just call the backend function, the chatbubble text is handled over a listener
     } else {
-      await invoke('run_conversation_flow', { userMessage: null })
-        .then((response) => {
-          if (typeof (response) === 'string') {
-            const newMessage: Message = { type: 'magnus', text: response }
-            setMessages((prevMessages) => [...prevMessages, newMessage])
-          }
-        })
+      await invoke('run_conversation_flow', { userMessage: null, keybind: false })
     }
   }
 
+  const hasBeenCalledRef = useRef(false);
   useEffect(() => {
-    if (!listenerCreated) {
-      console.log("WE ARE RUNNNING")
+    if (!hasBeenCalledRef.current) {
+      hasBeenCalledRef.current = true
+
       const grabTranscription = async () => {
-        console.log("create user once")
-        await once<Payload>("user", (response) => {
+        await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
             const newMessage: Message = { type: 'user', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
         });
 
-        console.log("create magnus once")
-        await once<Payload>("magnus", (response) => {
+        await listen<Payload>("magnus", (response) => {
           if (typeof (response.payload.message) === 'string') {
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
-        setListenerCreated(false);
         })
       }
       grabTranscription();
-      setListenerCreated(true);
     }
-  }, [listenerCreated])
+  }, [])
 
   return (
     <div className="container">
@@ -106,7 +97,6 @@ function App() {
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>
       </form>
-      <div id="model_output"></div>
     </div>
   )
 }

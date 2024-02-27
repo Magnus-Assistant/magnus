@@ -51,7 +51,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             let _ = app_handle.emit_all("user", Payload { message: user_message.clone() });
             let assistant_message = assistant::run(user_message).await;
             println!("Magnus: {assistant_message}");
-            let _ = app_handle.emit_all("magnus", Payload { message: assistant_message.clone()});
+            let _ = app_handle.emit_all("magnus", Payload { message: assistant_message.clone().replace('"', "")});
 
             let assistant_message_clone = assistant_message.clone();
             thread::spawn(move || {
