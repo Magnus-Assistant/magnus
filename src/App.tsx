@@ -1,6 +1,15 @@
 import { invoke } from "@tauri-apps/api/tauri"
+import { emit, listen } from '@tauri-apps/api/event'
 import React, { FormEvent, useState } from 'react'
 import ChatFrame, { Message, scrollToBottom } from "./components/chatFrame/chatFrame";
+
+type Payload = {
+  message: string;
+};
+
+const unlisten = await listen<Payload>("message", (event) => {
+    console.log(event.payload)
+})
 
 function App() {
   const [text, setText] = useState<string>('')

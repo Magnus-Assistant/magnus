@@ -6,8 +6,7 @@ use lazy_static::lazy_static;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tauri::GlobalShortcutManager;
-use tauri::async_runtime;
+use tauri::{async_runtime, App, AppHandle, GlobalShortcutManager, Manager};
 use tokio::runtime::Runtime;
 
 mod assistant;
@@ -20,6 +19,11 @@ lazy_static! {
     static ref TRANSCRIPTION_CHANNEL: (Sender<String>, Receiver<String>) = bounded::<String>(1);
 }
 
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+  message: String,
+}
+  
 async fn create_message_thread() -> String {
     let result = assistant::create_message_thread().await;
 
@@ -34,7 +38,7 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn run_conversation_flow(user_message: Option<String>) -> Option<String> {
+async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) -> Option<String> {
     // if we have no user message, attempt to get speech input
     let user_message = match user_message {
         Some(message) => Some(message),
@@ -45,8 +49,10 @@ async fn run_conversation_flow(user_message: Option<String>) -> Option<String> {
     match user_message {
         Some(user_message) => {
             println!("User: {user_message}");
+            let _ = app_handle.emit_all("message", Payload { message: user_message.clone() });
             let assistant_message = assistant::run(user_message).await;
             println!("Magnus: {assistant_message}");
+            let _ = app_handle.emit_all("message", Payload { message: assistant_message.clone() });
 
             let assistant_message_clone = assistant_message.clone();
             thread::spawn(move || {
@@ -90,9 +96,10 @@ fn main() {
                     *running_keybind_flow = true;
                     let running_keybind_flow_clone = running_keybind_flow_clone.clone();
 
+                    let app_handle_clone = app_handle.clone();
                     // begin flow
                     tauri::async_runtime::spawn(async move {
-                        run_conversation_flow(None).await;
+                        run_conversation_flow(app_handle_clone, None).await;
                         let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
                         *running_keybind_flow = false;
                     });
