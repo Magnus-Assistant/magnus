@@ -1,42 +1,35 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
 use crate::tools;
 use reqwest::Error;
-use std::thread;
 use std::time::Duration;
-use crossbeam::channel::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use crossbeam::channel::Sender;
 use reqwest::header::TRANSFER_ENCODING;
 use opus::Decoder;
 use ogg::reading::async_api::PacketReader;
 use tokio_util::io::StreamReader;
-use cpal::{SampleRate, SupportedStreamConfig};
+use cpal::SampleRate;
 use tokio_stream::StreamExt;
 
-pub async fn run(output_stream_running: Arc<Mutex<bool>>, transcription_receiver: Receiver<String>, audio_output_sender: Sender<Vec<i16>>, audio_output_config: SupportedStreamConfig /* , assistant_response_sender: Sender<String>*/) {
-    // continue to run as long as the output stream is running also
-    while *output_stream_running.lock().unwrap() {
-        // receive speech transcription from vosk
-        if let Ok(transcription) = transcription_receiver.try_recv() {
-            let message = serde_json::json!({
-                "role": "user",
-                "content": transcription
-            });
 
-            let _ = create_message(message, get_thread_id()).await;
+pub async fn run(user_message: String) -> String {
+    let message = serde_json::json!({
+        "role": "user",
+        "content": user_message
+    });
 
-            let run_id: String = create_run(get_thread_id())
-                .await
-                .unwrap_or_else(|err| {
-                    panic!("Error occurred: {:?}", err);
-                });
-            
-            let _ = run_and_wait(&run_id, get_thread_id()).await;
+    let _ = create_message(message, get_thread_id()).await;
 
-            let response = get_assistant_last_response(get_thread_id()).await.unwrap();
+    let run_id: String = create_run(get_thread_id())
+        .await
+        .unwrap_or_else(|err| {
+            panic!("Error occurred: {:?}", err);
+        });
 
-            let _ = create_speech(response, audio_output_sender.clone(), audio_output_config.sample_rate(), audio_output_config.channels()).await;
-        }
-    }
+    let _ = run_and_wait(&run_id, get_thread_id()).await;
+
+    let assistant_response = get_assistant_last_response(get_thread_id()).await.unwrap();
+
+    assistant_response
 } 
 
 pub async fn create_message_thread() -> Result<String, Error> {
@@ -53,7 +46,7 @@ pub async fn create_message_thread() -> Result<String, Error> {
     Ok(thread["id"].to_string())
 }
 
-pub async fn create_message(message: serde_json::Value, thread_id: String) -> Result<(), Error> {
+pub async fn create_message(user_message: serde_json::Value, thread_id: String) -> Result<(), Error> {
     get_reqwest_client()
         .post(format!(
             "https://api.openai.com/v1/threads/{}/messages",
@@ -62,10 +55,10 @@ pub async fn create_message(message: serde_json::Value, thread_id: String) -> Re
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
-        .json(&message)
+        .json(&user_message)
         .send()
         .await?;
-    println!("User: {}", message["content"]);
+
     Ok(())
 }
 
@@ -161,7 +154,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                 .await;
             }
         } else {
-            thread::sleep(Duration::from_secs(1));
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
 }
@@ -200,35 +193,11 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
     let messages = response.json::<serde_json::Value>().await?;
 
     let assistant_response = messages["data"][0]["content"][0]["text"]["value"].to_string();
-    println!("Magnus: {assistant_response}");
     
     Ok(assistant_response)
 }
 
-pub async fn print_messages(thread_id: String) -> Result<(), Error> {
-    let response = get_reqwest_client()
-        .get(format!(
-            "https://api.openai.com/v1/threads/{}/messages",
-            thread_id
-        ))
-        .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
-        .send()
-        .await?;
-
-    let messages = response.json::<serde_json::Value>().await?;
-
-    println!("messages are:");
-    if let Ok(pretty_json) = serde_json::to_string_pretty(&messages) {
-        println!("{}", pretty_json);
-    } else {
-        println!("Failed to serialize to pretty-printed JSON");
-    }
-
-    Ok(())
-}
-
-pub async fn create_speech(assistant_response: String, /*assistant_response_receiver: Receiver<String>,*/ audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
+pub async fn create_speech(assistant_message: String, audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
     let channels: opus::Channels = match channels {
         1 => opus::Channels::Mono,
         2 => opus::Channels::Stereo,
@@ -238,11 +207,12 @@ pub async fn create_speech(assistant_response: String, /*assistant_response_rece
 
     let data = serde_json::json!({
         "model": "tts-1",
-        "input": assistant_response,
+        "input": assistant_message,
         "voice": "echo",
         "response_format": "opus"
     });
 
+    //returns a response that contains a byte stream
     let response = get_reqwest_client()
         .post("https://api.openai.com/v1/audio/speech")
         .header(TRANSFER_ENCODING, "chunked")
@@ -281,7 +251,6 @@ pub async fn create_speech(assistant_response: String, /*assistant_response_rece
             Err(e) => println!("Error reading packet: {e:#?}")
         }
     }
-
     Ok(())
 }
 

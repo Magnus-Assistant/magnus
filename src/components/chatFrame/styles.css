@@ -1,0 +1,11 @@
+.ChatFrame {
+    grid-template-rows: min-content;
+    grid-template-columns: auto;
+    flex-direction: column;
+    background-color: #0f0f0f98;
+    overflow-y: scroll;
+    flex-grow: 1;
+    height: auto;
+    max-height: 90vh;
+    border-radius: 10px;
+}

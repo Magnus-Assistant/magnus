@@ -1,7 +1,7 @@
 use crate::assistant;
 use crossbeam::channel::{bounded, Receiver, Sender};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, Sample, StreamError, FromSample};
+use cpal::{Device, Sample, StreamError, FromSample};
 use std::{collections::VecDeque, error::Error, sync::{Arc, Mutex}, thread, time::Duration};
 
 pub fn get_audio_output_device() -> Device {
@@ -19,7 +19,7 @@ pub fn get_audio_output_device() -> Device {
     audio_output_device
 }
 
-pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device) -> Box<dyn Error> {
+pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device, synthesizing: Arc<Mutex<bool>>) -> Result<(), Box<dyn Error>> {
     let config = device.default_output_config().unwrap();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
 
@@ -41,6 +41,8 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device) -> 
             }
         }
     }
+
+    let audio_output_receiver_clone = audio_output_receiver.clone();
 
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => device.build_output_stream(
@@ -72,52 +74,39 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device) -> 
     loop {
         if let Ok(stream_error) = error_receiver.try_recv() {
             drop(stream);
-            return Box::new(stream_error)
+            return Err(Box::new(stream_error))
+        }
+        else if !*synthesizing.lock().unwrap() && audio_output_receiver_clone.is_empty() {
+            return Ok(())
         }
     }
 }
 
-pub fn run(transcription_receiver: Receiver<String>) {
-    let output_stream_running: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+pub async fn speak(assistant_message: String) -> Result<(), Box<dyn Error>> {
+    // create speech sender and receiver
     let (audio_output_sender, audio_output_receiver): (Sender<Vec<i16>>, Receiver<Vec<i16>>) = crossbeam::channel::unbounded::<Vec<i16>>();
+    let synthesizing: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
-    loop {
-        *output_stream_running.lock().unwrap() = true;
+    // find an output device
+    let audio_output_device = get_audio_output_device();
+    let audio_output_config = audio_output_device.default_output_config().unwrap();    
 
-        // find an output device
-        let audio_output_device = get_audio_output_device();
-        let audio_output_config = audio_output_device.default_output_config().unwrap();
+    // spawn create_speech with sender
+    *synthesizing.lock().unwrap() = true;
+    let create_speech_handle = tauri::async_runtime::spawn(async move {
+        assistant::create_speech(assistant_message, audio_output_sender, audio_output_config.sample_rate(), audio_output_config.channels()).await
+    });
 
-        // must create clones for these types to be moved to the async runtime
-        let output_stream_running_clone = output_stream_running.clone();
-        let transcription_receiver_clone = transcription_receiver.clone();
-        let audio_output_sender_clone = audio_output_sender.clone();
+    // spawn output with receiver
+    let synthesizing_clone = synthesizing.clone();
+    let output_stream_handle = thread::spawn(move || {
+        let _ = run_stream(audio_output_receiver, audio_output_device, synthesizing_clone);
+    });
 
-        // spawn assistant async runtime
-        thread::spawn(move || {
-            tauri::async_runtime::spawn(async move {
-                assistant::run(output_stream_running_clone, transcription_receiver_clone, audio_output_sender_clone, audio_output_config).await;
-            });
-        });
+    // wait for the threads to finish
+    let _ = create_speech_handle.await;
+    *synthesizing.lock().unwrap() = false;
+    output_stream_handle.join().unwrap();
 
-        // run output stream until there is some error
-        let error = run_stream(audio_output_receiver.clone(), audio_output_device);
-
-        // once there is an error with the output stream, stop the assistant runtime
-        *output_stream_running.lock().unwrap() = false;
-
-        // many different potential errors can occur, maybe we handle them each differently??
-        if let Some(stream_error) = error.downcast_ref::<StreamError>() {
-            match stream_error {
-                StreamError::DeviceNotAvailable => println!("Output device disconnected!"),
-                StreamError::BackendSpecific { err } => println!("Backend specific error! {err:#?}")
-            }
-        }
-        else if let Some(build_stream_error) = error.downcast_ref::<BuildStreamError>() {
-            match build_stream_error {
-                BuildStreamError::StreamConfigNotSupported => println!("Some build stream error!"),
-                _ => println!("Some build stream error!")
-            }
-        }
-    }
+    return Ok(())
 }

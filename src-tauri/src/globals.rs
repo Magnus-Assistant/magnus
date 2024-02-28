@@ -2,10 +2,18 @@ use reqwest::Client;
 use lazy_static::lazy_static;
 use std::env;
 use std::sync::Mutex;
+use vosk::Model;
 
 lazy_static! {
     static ref REQWEST_CLIENT: Client = Client::new();
     static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
+    static ref VOSK_MODEL: Model = {
+        // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
+        let model_path = "./models/vosk-model-small-en-us-0.15/";
+     
+        let model = Model::new(model_path).unwrap();
+        model
+    };
     static ref MAGNUS_ID: String = {
         match env::var("MAGNUS_ID") {
             Ok(value) => value,
@@ -60,6 +68,10 @@ pub fn get_opencage_key() -> &'static String {
 
 pub fn get_weather_api_user_agent() -> &'static String {
     &WEATHER_API_USER_AGENT
+}
+
+pub fn get_vosk_model() -> &'static Model {
+    &VOSK_MODEL
 }
 
 pub fn get_thread_id() -> String {
