@@ -37,7 +37,7 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) -> Option<String> {
+async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) {
     // if we have no user message, attempt to get speech input
     let user_message = match user_message {
         Some(message) => Some(message),
@@ -60,11 +60,8 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
                     let _ = audio_output::speak(assistant_message_clone).await;
                 });
             });
-            return Some(assistant_message.replace('"', ""));
         }
-        None => {
-            return None;
-        }
+        None => { println!("No message from user"); }
     }
 }
 

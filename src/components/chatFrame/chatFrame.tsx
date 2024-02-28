@@ -4,7 +4,7 @@ import "./styles.css"
 
 // This chatFrame will contain the chat bubbles from the user and from magnuss
 
-export interface Message {
+export type Message = {
     type: 'magnus' | 'user';
     text: string
 };

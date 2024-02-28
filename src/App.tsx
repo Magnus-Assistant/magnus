@@ -9,7 +9,7 @@ type Payload = {
 
 function App() {
   const [text, setText] = useState<string>('')
-  const [messages, setMessages] = useState<{ type: 'magnus' | 'user'; text: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [shouldMic, setShouldMic] = useState(false);
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,12 +20,7 @@ function App() {
     event.preventDefault()
     //create a new message and set the message in local state
     if (text) {
-      const newMessage: Message = { type: 'user', text: text }
-      setMessages((prevMessages) => [...prevMessages, newMessage])
-      // add brief timeout so that the text can render. Then scroll down
-      console.log("Form Submit Messages: ", messages)
       setTimeout(scrollToBottom, 30);
-
       //dont use the microphone   
       runConversationFlow(false);
       setText('');
@@ -52,16 +47,10 @@ function App() {
   async function runConversationFlow(use_mic?: boolean) {
     // if we shouldnt use the mic use the local text state contents
     if (!use_mic) {
-      await invoke('run_conversation_flow', { userMessage: text, keybind: false })
-        .then((response) => {
-          if (typeof (response) === 'string') {
-            const newMessage: Message = { type: 'magnus', text: response }
-            setMessages((prevMessages) => [...prevMessages, newMessage])
-          }
-        })
+      await invoke('run_conversation_flow', { userMessage: text })
       // just call the backend function, the chatbubble text is handled over a listener
     } else {
-      await invoke('run_conversation_flow', { userMessage: null, keybind: false })
+      await invoke('run_conversation_flow', { userMessage: null })
     }
   }
 
