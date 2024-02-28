@@ -42,6 +42,11 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          MAGNUS_ID: ${{ secrets.MAGNUS_ID }}
+          IPAPI_KEY: ${{ secrets.IPAPI_KEY }}
+          WEATHER_API_USER_AGENT: ${{ secrets.WEATHER_API_USER_AGENT }}
+          OPENCAGE_KEY: ${{ secrets.OPENCAGE_KEY }}
         with:
           tagName: ${{ github.ref_name }} # This only works if your workflow triggers on new tags.
           releaseName: 'App Name v__VERSION__' # tauri-action replaces \_\_VERSION\_\_ with the app version.
