@@ -197,29 +197,6 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
     Ok(assistant_response)
 }
 
-pub async fn print_messages(thread_id: String) -> Result<(), Error> {
-    let response = get_reqwest_client()
-        .get(format!(
-            "https://api.openai.com/v1/threads/{}/messages",
-            thread_id
-        ))
-        .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
-        .send()
-        .await?;
-
-    let messages = response.json::<serde_json::Value>().await?;
-
-    println!("messages are:");
-    if let Ok(pretty_json) = serde_json::to_string_pretty(&messages) {
-        println!("{}", pretty_json);
-    } else {
-        println!("Failed to serialize to pretty-printed JSON");
-    }
-
-    Ok(())
-}
-
 pub async fn create_speech(assistant_message: String, audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
     let channels: opus::Channels = match channels {
         1 => opus::Channels::Mono,
