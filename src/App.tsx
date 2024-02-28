@@ -10,7 +10,7 @@ type Payload = {
 function App() {
   const [text, setText] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
-  const [shouldMic, setShouldMic] = useState(false);
+  const [shouldMic, setShouldMic] = useState(true);
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -64,6 +64,13 @@ function App() {
           if (typeof (response.payload.message) === 'string') {
             const newMessage: Message = { type: 'user', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
+          }
+
+          //reset the state of the mic button if we get a transcription from the user back
+          setShouldMic(true)
+          const button = document.getElementById('micButton');
+          if (button) {
+            button.style.filter = "invert(0%)"
           }
         });
 
