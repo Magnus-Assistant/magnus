@@ -127,7 +127,6 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device, transcribing
             println!("Transcription finished, exiting input stream.");
             break
         }
-        thread::sleep(Duration::from_secs(1));
     }
 }
 

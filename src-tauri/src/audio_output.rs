@@ -79,7 +79,6 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device, syn
         else if !*synthesizing.lock().unwrap() && audio_output_receiver_clone.is_empty() {
             return Ok(())
         }
-        thread::sleep(Duration::from_secs(1));
     }
 }
 
