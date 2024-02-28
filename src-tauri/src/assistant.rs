@@ -1,7 +1,6 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
 use crate::tools;
 use reqwest::Error;
-use std::thread;
 use std::time::Duration;
 use crossbeam::channel::Sender;
 use reqwest::header::TRANSFER_ENCODING;
@@ -10,6 +9,7 @@ use ogg::reading::async_api::PacketReader;
 use tokio_util::io::StreamReader;
 use cpal::SampleRate;
 use tokio_stream::StreamExt;
+
 
 pub async fn run(user_message: String) -> String {
     let message = serde_json::json!({
@@ -46,7 +46,7 @@ pub async fn create_message_thread() -> Result<String, Error> {
     Ok(thread["id"].to_string())
 }
 
-pub async fn create_message(message: serde_json::Value, thread_id: String) -> Result<(), Error> {
+pub async fn create_message(user_message: serde_json::Value, thread_id: String) -> Result<(), Error> {
     get_reqwest_client()
         .post(format!(
             "https://api.openai.com/v1/threads/{}/messages",
@@ -55,7 +55,7 @@ pub async fn create_message(message: serde_json::Value, thread_id: String) -> Re
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
         .header("OpenAI-Beta", "assistants=v1")
-        .json(&message)
+        .json(&user_message)
         .send()
         .await?;
 
@@ -154,7 +154,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                 .await;
             }
         } else {
-            thread::sleep(Duration::from_secs(1));
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
 }
@@ -235,6 +235,7 @@ pub async fn create_speech(assistant_message: String, audio_output_sender: Sende
         "response_format": "opus"
     });
 
+    //returns a response that contains a byte stream
     let response = get_reqwest_client()
         .post("https://api.openai.com/v1/audio/speech")
         .header(TRANSFER_ENCODING, "chunked")
@@ -273,7 +274,6 @@ pub async fn create_speech(assistant_message: String, audio_output_sender: Sende
             Err(e) => println!("Error reading packet: {e:#?}")
         }
     }
-
     Ok(())
 }
 
