@@ -22,14 +22,11 @@
       "targets": "all",
       "identifier": "com.magnus.dev",
       "icon": ["./icons/icon.png", "./icons/icon.ico"],
-      "resources": [
-      "./libgcc_s_seh-1.dll",
-      "./libstdc++-6.dll",
-      "./libvosk.dll",
-      "./libvosk.dylib",
-      "./libvosk.lib",
-      "./libwinpthread-1.dll"
-    ]
+      "externalBin": [
+        "/Users/parkerc/Documents/GitHub/magnus/src-tauri/externalBins/libvosk.dylib",
+        "/Users/parkerc/Documents/GitHub/magnus/src-tauri/externalBins/windows-vosk-x86_64-pc-windows-msvc",
+        "/Users/parkerc/Documents/GitHub/magnus/src-tauri/externalBins/models-aarch64-apple-darwin/vosk-model-small-en-us-0.15-aarch64-apple-darwin"
+      ]
     },
     "security": {
       "csp": null

@@ -24,7 +24,9 @@ pub fn get_audio_input_device() -> Device {
 }
 
 pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
-    let mut recognizer = Recognizer::new(&get_vosk_model(), sample_rate.0 as f32).unwrap();
+
+    let mut recognizer = Recognizer::new(get_vosk_model().as_ref().unwrap(), sample_rate.0 as f32).unwrap();
+
     println!("Speak..."); // eventually it would be nice to emit an audio cue telling the user they can speak
 
     // start "timer" here
