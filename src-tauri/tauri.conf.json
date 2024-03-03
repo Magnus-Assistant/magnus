@@ -23,9 +23,8 @@
       "identifier": "com.magnus.dev",
       "icon": ["./icons/icon.png", "./icons/icon.ico"],
       "externalBin": [
-        "/Users/parkerc/Documents/GitHub/magnus/src-tauri/externalBins/libvosk.dylib",
-        "/Users/parkerc/Documents/GitHub/magnus/src-tauri/externalBins/windows-vosk-x86_64-pc-windows-msvc",
-        "/Users/parkerc/Documents/GitHub/magnus/src-tauri/externalBins/models-aarch64-apple-darwin/vosk-model-small-en-us-0.15-aarch64-apple-darwin"
+        "./externalBins/libvosk.dylib",
+        "./externalBins/models-aarch64-apple-darwin/vosk-model-small-en-us-0.15"
       ]
     },
     "security": {
