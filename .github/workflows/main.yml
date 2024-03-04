@@ -26,6 +26,8 @@ jobs:
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Apple Darwin
         run: rustup target add aarch64-apple-darwin
 
       - name: Rust cache
