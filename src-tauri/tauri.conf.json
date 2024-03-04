@@ -24,7 +24,12 @@
       "icon": ["./icons/icon.png", "./icons/icon.ico"],
       "externalBin": [
         "./externalBins/libvosk.dylib",
-        "./externalBins/models-aarch64-apple-darwin/vosk-model-small-en-us-0.15"
+        "./externalBins/models-aarch64-apple-darwin/vosk-model-small-en-us-0.15",
+        "./externalBins/libgcc_s_seh-1.dll",
+        "./externalBins/libstdc++-6.dll",
+        "./externalBins/libvosk.dll",
+        "./externalBins/libvosk.lib",
+        "./externalBins/libwinpthread-1.dll"
       ]
     },
     "security": {

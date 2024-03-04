@@ -9,7 +9,7 @@ lazy_static! {
     static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
     static ref VOSK_MODEL: Option<Model> = {
         // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-        let model_path = "/Users/parkerc/Documents/GitHub/magnus/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/magnus.app/Contents/MacOS";
+        let model_path = "/Users/parkerc/Documents/GitHub/magnus/src-tauri/target/release/bundle/macos/magnus.app/Contents/MacOS";
      
         match Model::new(model_path) {
             Some(model) => { return Some(model); },
