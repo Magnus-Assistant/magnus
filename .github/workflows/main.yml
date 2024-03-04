@@ -38,7 +38,7 @@ jobs:
         run: npm install
 
       - name: Build the app
-        run: npm run tauri build
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
@@ -46,47 +46,9 @@ jobs:
           IPAPI_KEY: ${{ secrets.IPAPI_KEY }}
           WEATHER_API_USER_AGENT: ${{ secrets.WEATHER_API_USER_AGENT }}
           OPENCAGE_KEY: ${{ secrets.OPENCAGE_KEY }}
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
+          tagName: ${{ github.ref_name }} # This only works if your workflow triggers on new tags.
+          releaseName: 'App Name v__VERSION__' # tauri-action replaces \_\_VERSION\_\_ with the app version.
+          releaseBody: 'See the assets to download and install this version.'
+          releaseDraft: false
           prerelease: false
-
-      - name: Upload Windows .msi Asset
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./src-tauri/target/release/bundle/msi/
-          asset_name: magnus_0.0.0_x64_en-US.msi
-          asset_content_type: application/octet-stream
-
-      - name: Upload Windows .exe Asset
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./src-tauri/target/release/bundle/nsis/
-          asset_name: magnus_0.0.0_x64-setup.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload macOS .dmg Asset
-        if: matrix.platform == 'macos-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./src-tauri/target/release/bundle/dmg/
-          asset_name: magnus_0.0.0_x64.dmg
-          asset_content_type: application/octet-stream
