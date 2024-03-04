@@ -26,6 +26,7 @@ jobs:
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
+        run: rustup target add aarch64-apple-darwin
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
