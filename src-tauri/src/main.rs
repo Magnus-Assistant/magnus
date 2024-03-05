@@ -2,6 +2,7 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crossbeam::channel::{bounded, Receiver, Sender};
+use dotenv;
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -66,7 +67,21 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
 }
 
 fn main() {
-    dotenv::dotenv().ok();
+    if cfg!(debug_assertions) {
+        dotenv::from_filename(".env.development").ok();
+        println!("dev!!!!");
+    }
+    else {
+        #[cfg(target_os = "windows")]
+        let prod_env = include_str!("..\\.env.production");
+
+        #[cfg(target_os = "macos")]
+        let prod_env = include_str!("../.env.production");
+
+        let result = dotenv::from_read(prod_env.as_bytes()).unwrap();
+        result.load();
+        println!("prod!!!!");
+    }
 
     // setups before app build
     let running_keybind_flow = Arc::new(Mutex::new(false));
