@@ -39,12 +39,11 @@ jobs:
 
       - name: Create .env.production file
         run: |
-          echo "IPAPI_KEY=${{ secrets.IPAPI_KEY }}" >> .env.production
-          echo "MAGNUS_ID=${{ secrets.MAGNUS_ID }}" >> .env.production
-          echo "OPENAI_KEY=${{ secrets.OPENAI_KEY }}" >> .env.production
-          echo "OPENCAGE_KEY=${{ secrets.OPENCAGE_KEY }}" >> .env.production
-          echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}" >> .env.production
-          echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}"
+          echo "IPAPI_KEY=${{ secrets.IPAPI_KEY }}" >> ./src-tauri/.env.production
+          echo "MAGNUS_ID=${{ secrets.MAGNUS_ID }}" >> ./src-tauri/.env.production
+          echo "OPENAI_KEY=${{ secrets.OPENAI_KEY }}" >> ./src-tauri/.env.production
+          echo "OPENCAGE_KEY=${{ secrets.OPENCAGE_KEY }}" >> ./src-tauri/.env.production
+          echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}" >> ./src-tauri/.env.production
         shell: bash
 
       - name: Build the app
