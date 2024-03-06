@@ -301,7 +301,6 @@ async fn execute(
                 "get_clipboard_text" => tools::get_clipboard_text(),
                 "get_screenshot" => tools::get_screenshot().await,
                 "get_time" => tools::get_time(),
-                "pass" => tools::pass(),
                 _ => panic!("No function name given without arguments."),
             };
         }
