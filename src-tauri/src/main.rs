@@ -3,6 +3,7 @@
 
 use crossbeam::channel::{bounded, Receiver, Sender};
 use dotenv;
+
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -67,19 +68,33 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
 }
 
 fn main() {
+    // load env
     if cfg!(debug_assertions) {
-        dotenv::from_filename(".env.development").ok();
+        dotenv::dotenv().ok();
         println!("dev!!!!");
     }
     else {
         #[cfg(target_os = "windows")]
-        let prod_env = include_str!("..\\.env.production");
+        let env = include_str!("..\\.env");
 
         #[cfg(target_os = "macos")]
-        let prod_env = include_str!("../.env.production");
+        let env = include_str!("../.env");
 
-        let result = dotenv::from_read(prod_env.as_bytes()).unwrap();
-        result.load();
+        for line in env.lines() {
+            // skip empty lines and comments
+            if line.trim().is_empty() || line.starts_with('#') {
+                continue;
+            }
+    
+            if let Some((key, value)) = line.split_once('=') {
+                // trim potential whitespace
+                let key = key.trim();
+                let value = value.trim();
+    
+                // set environment variable
+                std::env::set_var(key, value);
+            }
+        }    
         println!("prod!!!!");
     }
 

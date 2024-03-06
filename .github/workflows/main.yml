@@ -37,13 +37,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Create .env.production file
+      - name: Create environment file
         run: |
-          echo "IPAPI_KEY=${{ secrets.IPAPI_KEY }}" >> ./src-tauri/.env.production
-          echo "MAGNUS_ID=${{ secrets.MAGNUS_ID }}" >> ./src-tauri/.env.production
-          echo "OPENAI_KEY=${{ secrets.OPENAI_KEY }}" >> ./src-tauri/.env.production
-          echo "OPENCAGE_KEY=${{ secrets.OPENCAGE_KEY }}" >> ./src-tauri/.env.production
-          echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}" >> ./src-tauri/.env.production
+          echo "IPAPI_KEY=${{ secrets.IPAPI_KEY }}" >> ./src-tauri/.env
+          echo "MAGNUS_ID=${{ secrets.MAGNUS_ID }}" >> ./src-tauri/.env
+          echo "OPENAI_KEY=${{ secrets.OPENAI_KEY }}" >> ./src-tauri/.env
+          echo "OPENCAGE_KEY=${{ secrets.OPENCAGE_KEY }}" >> ./src-tauri/.env
+          echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}" >> ./src-tauri/.env
         shell: bash
 
       - name: Build the app
