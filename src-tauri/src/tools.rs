@@ -201,8 +201,3 @@ pub fn get_time() -> String {
     println!("getting time!");
     format!("{:#?}", Local::now())
 }
-
-pub fn pass() -> String {
-    println!("passing!");
-    String::new()
-}

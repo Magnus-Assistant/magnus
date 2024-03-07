@@ -1,5 +1,5 @@
-use reqwest::Client;
 use lazy_static::lazy_static;
+use reqwest::Client;
 use std::env;
 use std::sync::Mutex;
 use vosk::Model;
@@ -9,11 +9,28 @@ lazy_static! {
     static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
     static ref VOSK_MODEL: Model = {
         // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
-        let model_path = "./models/vosk-model-small-en-us-0.15/";
-     
-        let model = Model::new(model_path).unwrap();
-        model
+
+    // TODO Rework all of this code (lines 13 - 34)
+    // its really icky and not fault tolerant
+    #[cfg(target_os = "windows")]
+    {
+        let model_path = "./models/vosk-model-small-en-us-0.15";
+        Model::new(model_path).unwrap()
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let mut exe_path = env::current_exe().ok().unwrap();
+        exe_path.pop();
+        exe_path.pop();
+        exe_path.push("Resources");
+
+        let path_str = exe_path.to_str().unwrap();
+        let complete_path = format!("{path_str}/models/vosk-model-small-en-us-0.15");
+        Model::new(complete_path).unwrap()
+    }
     };
+
     static ref MAGNUS_ID: String = {
         match env::var("MAGNUS_ID") {
             Ok(value) => value,
@@ -23,25 +40,25 @@ lazy_static! {
     static ref OPENAI_KEY: String = {
         match env::var("OPENAI_KEY") {
             Ok(value) => value,
-            Err(_) => panic!("Could not fetch OpenAI API key!")
+            Err(_) => { println!("Could not fetch OpenAI API key!"); return "".to_string() }
         }
     };
     static ref IPAPI_KEY: String = {
         match env::var("IPAPI_KEY") {
             Ok(value) => value,
-            Err(_) => panic!("Could not fetch IP API key!")
+            Err(_) => { println!("Could not fetch IP API key!"); return "".to_string() }
         }
     };
     static ref WEATHER_API_USER_AGENT: String = {
         match env::var("WEATHER_API_USER_AGENT") {
             Ok(value) => value,
-            Err(_) => panic!("Could not fetch weather API User-Agent!")
+            Err(_) => { println!("Could not fetch weather API User-Agent!"); return "".to_string() }
         }
     };
     static ref OPENCAGE_KEY: String = {
         match env::var("OPENCAGE_KEY") {
             Ok(value) => value,
-            Err(_) => panic!("Could not fetch OpenCage API key!")
+            Err(_) => { println!("Could not fetch OpenCage API key!"); return "".to_string() }
         }
     };
 }
