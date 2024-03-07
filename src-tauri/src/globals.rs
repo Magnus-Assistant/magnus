@@ -15,10 +15,7 @@ lazy_static! {
     #[cfg(target_os = "windows")]
     {
         let model_path = "./models/vosk-model-small-en-us-0.15";
-        match Model::new(model_path) {
-            Some(model) => { return Some(model); },
-            None => { println!("Failed to create Model!"); return None;},
-        }
+        Model::new(model_path).unwrap()
     }
 
     #[cfg(target_os = "macos")]
