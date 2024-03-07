@@ -20,6 +20,10 @@ lazy_static! {
 
     #[cfg(target_os = "macos")]
     {
+        if cfg!(debug_assertions) {
+            let model_path = "./models/vosk-model-small-en-us-0.15";
+            Model::new(model_path).unwrap()
+        } else {
         let mut exe_path = env::current_exe().ok().unwrap();
         exe_path.pop();
         exe_path.pop();
@@ -28,6 +32,7 @@ lazy_static! {
         let path_str = exe_path.to_str().unwrap();
         let complete_path = format!("{path_str}/models/vosk-model-small-en-us-0.15");
         Model::new(complete_path).unwrap()
+        }
     }
     };
 
