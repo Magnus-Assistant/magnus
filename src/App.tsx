@@ -11,6 +11,7 @@ function App() {
   const [text, setText] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
   const [shouldMic, setShouldMic] = useState(true);
+  const [shouldTts, setShouldTts] = useState(false);
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -42,6 +43,28 @@ function App() {
         console.log("Audio Collecting Turned Off")
       }
     }
+  }
+
+  const handlTtsClick = () => {
+    const button = document.getElementById('ttsButton');
+    if (button) {
+      if (!shouldTts) {
+        setShouldTts(true)
+        setBackendTTS()
+        button.style.filter = "invert(100%)"
+        console.log("WILL TTS")
+
+      } else {
+        setShouldTts(false)
+        setBackendTTS()
+        button.style.filter = "invert(0%)"
+        console.log("WILL NOT TTS")
+      }
+    }
+  }
+
+  async function setBackendTTS() {
+    await invoke('set_tts', {ttsValue: !shouldTts})
   }
 
   async function runConversationFlow(use_mic?: boolean) {
@@ -89,6 +112,7 @@ function App() {
     <div className="container">
       <ChatFrame initialMessages={messages}></ChatFrame>
       <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 10, marginBottom: 10 }}>
+        <button id="ttsButton" type="button" onClick={handlTtsClick}>TTS</button>
         <button id="micButton" type="button" onClick={handlMicClick}>-</button>
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>
