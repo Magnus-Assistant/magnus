@@ -22,7 +22,7 @@
       "targets": "all",
       "identifier": "com.magnus.dev",
       "icon": ["./icons/icon.png", "./icons/icon.ico"],
-      "resources": ["./libgcc_s_seh-1.dll", "./libstdc++-6.dll", "./libvosk.dll", "./libvosk.dylib", "./libvosk.lib", "./libwinpthread-1.dll"]
+      "resources": ["./libgcc_s_seh-1.dll", "./libstdc++-6.dll", "./libvosk.dll", "./libvosk.dylib", "./libvosk.lib", "./libwinpthread-1.dll", "./models/vosk-model-small-en-us-0.15/"]
     },
     "security": {
       "csp": null
