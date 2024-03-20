@@ -1,9 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crossbeam::channel::{bounded, Receiver, Sender};
 use dotenv;
-
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -17,14 +15,14 @@ mod globals;
 mod tools;
 
 lazy_static! {
-    static ref TRANSCRIPTION_CHANNEL: (Sender<String>, Receiver<String>) = bounded::<String>(1);
+    static ref HAS_TTS: Mutex<bool> = Mutex::new(false);
 }
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
-  message: String,
+    message: String,
 }
-  
+
 async fn create_message_thread() -> String {
     let result = assistant::create_message_thread().await;
 
@@ -39,7 +37,16 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+async fn set_tts(tts_value: bool) { 
+    *HAS_TTS.lock().unwrap() = tts_value;
+}
+
+#[tauri::command]
 async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) {
+
+    let should_tts = *HAS_TTS.lock().unwrap();
+    println!("HAS TTS: {}", should_tts);
+
     // if we have no user message, attempt to get speech input
     let user_message = match user_message {
         Some(message) => Some(message),
@@ -50,20 +57,34 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
     match user_message {
         Some(user_message) => {
             println!("User: {user_message}");
-            let _ = app_handle.emit_all("user", Payload { message: user_message.clone() });
+            let _ = app_handle.emit_all(
+                "user",
+                Payload {
+                    message: user_message.clone(),
+                },
+            );
             let assistant_message = assistant::run(user_message).await;
             println!("Magnus: {assistant_message}");
-            let _ = app_handle.emit_all("magnus", Payload { message: assistant_message.clone().replace('"', "")});
+            let _ = app_handle.emit_all(
+                "magnus",
+                Payload {
+                    message: assistant_message.clone().replace('"', ""),
+                },
+            );
 
-            let assistant_message_clone = assistant_message.clone();
-            thread::spawn(move || {
-                let rt = Runtime::new().unwrap();
-                rt.block_on(async {
-                    let _ = audio_output::speak(assistant_message_clone).await;
+            if should_tts {
+                let assistant_message_clone = assistant_message.clone();
+                thread::spawn(move || {
+                    let rt = Runtime::new().unwrap();
+                    rt.block_on(async {
+                        let _ = audio_output::speak(assistant_message_clone).await;
+                    });
                 });
-            });
+            }
         }
-        None => { println!("No message from user"); }
+        None => {
+            println!("No message from user");
+        }
     }
 }
 
@@ -124,6 +145,7 @@ fn main() {
 
                     let app_handle_clone = app_handle.clone();
                     // begin flow
+
                     tauri::async_runtime::spawn(async move {
                         run_conversation_flow(app_handle_clone, None).await;
                         let mut running_keybind_flow = running_keybind_flow_clone.lock().unwrap();
@@ -136,7 +158,7 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_conversation_flow])
+        .invoke_handler(tauri::generate_handler![run_conversation_flow, set_tts])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
