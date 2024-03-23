@@ -3,7 +3,9 @@
     color: #000;
     text-align: left;
     border-radius: 10px;
-    padding: 10px 15px;
+    padding: 10px;
+    padding-top: 1px;
+    padding-bottom: 1px;
     max-width: 65%;
     width: fit-content;
     margin: 10px;
@@ -16,10 +18,17 @@
     color: #fff;
     text-align: left;
     border-radius: 10px;
-    padding: 10px 15px;
+    padding: 10px;
+    padding-top: 1px;
+    padding-bottom: 1px;
     max-width: 65%;
     width: fit-content;
     margin: 10px;
     margin-right: auto;
     position: relative;
+}
+
+.markdown * {
+    margin-block-start: 7px;
+    margin-block-end: 7px;
 }

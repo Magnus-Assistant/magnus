@@ -68,7 +68,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             let _ = app_handle.emit_all(
                 "magnus",
                 Payload {
-                    message: assistant_message.clone().replace('"', ""),
+                    message: assistant_message.clone(),
                 },
             );
 
