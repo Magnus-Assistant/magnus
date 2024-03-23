@@ -11,6 +11,7 @@ export type Message = {
 
 export interface ChatFrameProps {
     initialMessages: Message[];
+    typing: boolean;
 }
 
 export function scrollToBottom() {
@@ -22,7 +23,7 @@ export function scrollToBottom() {
     }
 }
 
-const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages }) => {
+const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages, typing }) => {
 
     useEffect(() => {
         // Initialize messages with initialMessages when provided
@@ -41,8 +42,9 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages }) => {
                     ) : (
                         <ChatBubble key={index} text={message.text} chat_style="userChatBubble"></ChatBubble>
                     )
-                ))}
-            <TypingIndicator />
+                ))
+            }
+            <TypingIndicator typing={typing} />
         </div>
     )
 }

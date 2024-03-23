@@ -11,8 +11,8 @@
   
 .typing-indicator span {
     display: inline-block;
-    width: 15px;
-    height: 15px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background-color: white;
     margin: 0 5px;

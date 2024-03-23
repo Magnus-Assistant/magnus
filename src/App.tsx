@@ -12,6 +12,7 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [shouldMic, setShouldMic] = useState(true);
   const [shouldTts, setShouldTts] = useState(false);
+  const [typing, setTyping] = useState(false)
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -22,6 +23,7 @@ function App() {
     //create a new message and set the message in local state
     if (text) {
       setTimeout(scrollToBottom, 30);
+      setTyping(true)
       //dont use the microphone   
       runConversationFlow(false);
       setText('');
@@ -99,8 +101,10 @@ function App() {
 
         await listen<Payload>("magnus", (response) => {
           if (typeof (response.payload.message) === 'string') {
+            setTyping(false)
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
+            setTyping(false)
           }
         })
       }
@@ -110,7 +114,7 @@ function App() {
 
   return (
     <div className="container">
-      <ChatFrame initialMessages={messages}></ChatFrame>
+      <ChatFrame initialMessages={messages} typing={typing}></ChatFrame>
       <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 10, marginBottom: 10 }}>
         <button id="ttsButton" type="button" onClick={handlTtsClick}>TTS</button>
         <button id="micButton" type="button" onClick={handlMicClick}>-</button>
