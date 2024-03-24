@@ -32,7 +32,7 @@ pub async fn get_location_coordinates(location: &str) -> String {
                 format!(
                     "lat: {}, lng: {}",
                     coordinates["results"][0]["geometry"]["lat"],
-                    coordinates["results"][0]["geometry"]["lat"]
+                    coordinates["results"][0]["geometry"]["lng"]
                 )
             }
             Err(e) => format!("Unable to parse response: {}", e),
