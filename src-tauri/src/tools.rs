@@ -8,15 +8,74 @@ use image::{
     codecs::png::PngEncoder, imageops::resize, imageops::FilterType::Triangle, ColorType::Rgba8,
     ImageBuffer, ImageEncoder, Rgba,
 };
+use lazy_static::lazy_static;
 use scrap::{Capturer, Display};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::{
-    fs::File, io::ErrorKind::WouldBlock, path::Path, thread::sleep, time::Duration
+    fs::File, future::Future, io::ErrorKind::WouldBlock, path::Path, pin::Pin, sync::Arc, thread::sleep, time::Duration
 };
 use urlencoding::encode;
 
-pub async fn get_location_coordinates(location: &str) -> String {
-    println!("getting {} coordinates!", location);
+type SyncAction = dyn Fn(Map<String, Value>) -> String + Send + Sync;
+type AsyncAction = dyn Fn(Map<String, Value>) -> Pin<Box<dyn Future<Output = String> + Send>> + Send + Sync;
+
+pub enum Action {
+    Sync(Arc<SyncAction>),
+    Async(Arc<AsyncAction>),
+}
+
+pub struct Tool {
+    pub action: Action,
+    pub description: String
+    // TODO: permissions array
+}
+
+impl Tool {
+    pub fn new_sync<F>(action: F, description: String) -> Self
+    where
+        F: Fn(Map<String, Value>) -> String + Send + Sync + 'static,
+    {
+        Tool {
+            action: Action::Sync(Arc::new(action)),
+            description: description
+        }
+    }
+
+    pub fn new_async<F, Fut>(action: F, description: String) -> Self
+    where
+        F: Fn(Map<String, Value>) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = String> + Send + 'static,
+    {
+        Tool {
+            action: Action::Async(Arc::new(move |args| Box::pin(action(args)))),
+            description: description
+        }
+    }
+
+    pub async fn execute(&self, args: Map<String, Value>) -> String {
+        // TODO: check if we have all necessary permissions to run this tool
+        // TODO: emit the description to the frontend
+        println!("**{}...**", &self.description);
+
+        match &self.action {
+            Action::Sync(action) => action(args),
+            Action::Async(action) => action(args).await,
+        }
+    }
+}
+
+lazy_static! {
+    pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string());
+    pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string());
+    pub static ref LOCATION_COORDINATES: Tool = Tool::new_async(get_location_coordinates, "Looking at the map".to_string());
+    pub static ref SCREENSHOT: Tool = Tool::new_async(get_screenshot, "Peeking at your screen".to_string());
+    pub static ref TIME: Tool = Tool::new_sync(get_time, "Checking wrist watch".to_string());
+    pub static ref USER_COORDINATES: Tool = Tool::new_async(get_user_coordinates, "Accessing your location".to_string());
+}
+
+pub async fn get_location_coordinates(args: Map<String, Value>) -> String {
+    let location = args.get("location").unwrap().as_str().unwrap();
+
     let coordinates_result = get_reqwest_client()
         .get(format!(
             "https://api.opencagedata.com/geocode/v1/json?key={}&q={}",
@@ -25,7 +84,7 @@ pub async fn get_location_coordinates(location: &str) -> String {
         ))
         .send()
         .await;
-
+    
     match coordinates_result {
         Ok(coordinates_response) => match coordinates_response.json::<Value>().await {
             Ok(coordinates) => {
@@ -41,8 +100,11 @@ pub async fn get_location_coordinates(location: &str) -> String {
     }
 }
 
-pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {
-    println!("getting weather!");
+pub async fn get_forecast(args: Map<String, Value>) -> String {
+    let lat = &args.get("latitude").unwrap().to_string();
+    let lng = &args.get("longitude").unwrap().to_string();
+    let n_days = &args.get("n_days").unwrap().to_string();
+
     let weather_result = get_reqwest_client()
         .get(format!("https://api.weather.gov/points/{},{}", lat, lng))
         .header("User-Agent", get_weather_api_user_agent())
@@ -75,7 +137,6 @@ pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {
                                             for day in 0..num_days {
                                                 match days[day].as_object() {
                                                     Some(day_forecast) => {
-                                                        // println!("{}: {}\n", day_forecast["name"], day_forecast["detailedForecast"]);
                                                         the_forecast.push_str(
                                                             format!(
                                                                 "{}: {}\n",
@@ -109,8 +170,7 @@ pub async fn get_forecast(lat: &str, lng: &str, n_days: &str) -> String {
     }
 }
 
-pub async fn get_user_coordinates() -> String {
-    println!("getting user's location!");
+pub async fn get_user_coordinates(_: Map<String, Value>) -> String {
     let user_coordinates_result = get_reqwest_client()
         .get(format!("https://ipapi.co/json/?key={}", get_ip_api_key()))
         .send()
@@ -131,7 +191,7 @@ pub async fn get_user_coordinates() -> String {
 }
 
 // returns the contents of the systems clipboard
-pub fn get_clipboard_text() -> String {
+pub fn get_clipboard_text(_: Map<String, Value>) -> String {
     let mut clipboard = ClipboardContext::new().unwrap();
     match clipboard.get_contents() {
         Ok(text) => text,
@@ -142,7 +202,7 @@ pub fn get_clipboard_text() -> String {
 }
 
 // returns a string representation of a base64 screenshot of the primary display
-pub async fn get_screenshot() -> String {
+pub async fn get_screenshot(_: Map<String, Value>) -> String {
     let display = Display::primary().expect("Couldn't find primary display.");
     let width: u32 = display.width().try_into().unwrap();
     let height: u32 = display.height().try_into().unwrap();
@@ -179,11 +239,6 @@ pub async fn get_screenshot() -> String {
 
         // encode the image data to base64
         let base64_image = &BASE64_STANDARD_NO_PAD.encode(&bytes);
-        println!(
-            "first 10: {:?}\nlast 10: {:?}",
-            base64_image.get(..10),
-            base64_image.get(base64_image.len() - 10..)
-        );
 
         // write image for now, for viewing purposes. this will be removed later
         let path = Path::new("C:/Users/schre/Projects/screenshot.png");
@@ -197,7 +252,6 @@ pub async fn get_screenshot() -> String {
     }
 }
 
-pub fn get_time() -> String {
-    println!("getting time!");
+pub fn get_time(_: Map<String, Value>) -> String {
     format!("{:#?}", Local::now())
 }
