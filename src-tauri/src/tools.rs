@@ -1,6 +1,7 @@
 use crate::globals::{
     get_ip_api_key, get_opencage_key, get_reqwest_client, get_weather_api_user_agent,
 };
+use crate::permissions::{check, Permission, Permission::*};
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -26,34 +27,43 @@ pub enum Action {
 
 pub struct Tool {
     pub action: Action,
-    pub description: String
-    // TODO: permissions array
+    pub description: String,
+    pub permissions: Option<Vec<Permission>>
 }
 
 impl Tool {
-    pub fn new_sync<F>(action: F, description: String) -> Self
+    pub fn new_sync<F>(action: F, description: String, permissions: Option<Vec<Permission>>) -> Self
     where
         F: Fn(Map<String, Value>) -> String + Send + Sync + 'static,
     {
         Tool {
             action: Action::Sync(Arc::new(action)),
-            description: description
+            description: description,
+            permissions: permissions
         }
     }
 
-    pub fn new_async<F, Fut>(action: F, description: String) -> Self
+    pub fn new_async<F, Fut>(action: F, description: String, permissions: Option<Vec<Permission>>) -> Self
     where
         F: Fn(Map<String, Value>) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = String> + Send + 'static,
     {
         Tool {
             action: Action::Async(Arc::new(move |args| Box::pin(action(args)))),
-            description: description
+            description: description,
+            permissions: permissions
         }
     }
 
     pub async fn execute(&self, args: Map<String, Value>) -> String {
-        // TODO: check if we have all necessary permissions to run this tool
+        // check if all permissions are satisfied
+        if let Some(permissions) = &self.permissions {
+            if let Some(result) = check(permissions.to_vec()) {
+                println!("got result !!! {}", result.clone());
+                return result
+            }
+        }
+
         // TODO: emit the description to the frontend
         println!("**{}...**", &self.description);
 
@@ -65,12 +75,12 @@ impl Tool {
 }
 
 lazy_static! {
-    pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string());
-    pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string());
-    pub static ref LOCATION_COORDINATES: Tool = Tool::new_async(get_location_coordinates, "Looking at the map".to_string());
-    pub static ref SCREENSHOT: Tool = Tool::new_async(get_screenshot, "Peeking at your screen".to_string());
-    pub static ref TIME: Tool = Tool::new_sync(get_time, "Checking wrist watch".to_string());
-    pub static ref USER_COORDINATES: Tool = Tool::new_async(get_user_coordinates, "Accessing your location".to_string());
+    pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string(), Some(vec![Clipboard, Tts, Microphone]));
+    pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string(), None);
+    pub static ref LOCATION_COORDINATES: Tool = Tool::new_async(get_location_coordinates, "Looking at the map".to_string(), None);
+    pub static ref SCREENSHOT: Tool = Tool::new_async(get_screenshot, "Peeking at your screen".to_string(), Some(vec![Screenshot]));
+    pub static ref TIME: Tool = Tool::new_sync(get_time, "Checking wrist watch".to_string(), None);
+    pub static ref USER_COORDINATES: Tool = Tool::new_async(get_user_coordinates, "Accessing your location".to_string(), Some(vec![Location]));
 }
 
 pub async fn get_location_coordinates(args: Map<String, Value>) -> String {
