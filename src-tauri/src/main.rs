@@ -12,6 +12,7 @@ mod assistant;
 mod audio_input;
 mod audio_output;
 mod globals;
+mod permissions;
 mod tools; 
 
 lazy_static! {
