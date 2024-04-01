@@ -1,9 +1,6 @@
-use lazy_static::lazy_static;
-use std::path::PathBuf;
 use Permission::*;
 use serde_json::{to_string_pretty, Value};
 use std::{fs::File, io::{Read, Write}};
-use tauri::api::path::resource_dir;
 
 #[derive(Clone)]
 pub enum Permission {
@@ -24,21 +21,6 @@ impl Permission {
             Tts => "Tts"
         }
     }
-}
-
-lazy_static! {
-    static ref PERMISSIONS_FILE: String = {
-        let path: &str;
-
-        if cfg!(debug_assertions) {
-            path = "permissions.json";
-        }
-        else {
-            path = "";
-        }
-
-        path.to_string()
-    };
 }
 
 pub fn update(permissions: Value) {

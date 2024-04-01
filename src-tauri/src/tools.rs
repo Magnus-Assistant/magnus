@@ -75,7 +75,7 @@ impl Tool {
 }
 
 lazy_static! {
-    pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string(), Some(vec![Clipboard, Tts, Microphone]));
+    pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string(), Some(vec![Clipboard]));
     pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string(), None);
     pub static ref LOCATION_COORDINATES: Tool = Tool::new_async(get_location_coordinates, "Looking at the map".to_string(), None);
     pub static ref SCREENSHOT: Tool = Tool::new_async(get_screenshot, "Peeking at your screen".to_string(), Some(vec![Screenshot]));
