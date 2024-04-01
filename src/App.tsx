@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/tauri"
 import { listen } from '@tauri-apps/api/event'
 import React, { FormEvent, useEffect, useRef, useState } from 'react'
 import ChatFrame, { Message, scrollToBottom } from "./components/chatFrame/chatFrame";
+import SettingsModal from "./components/settingsModal/settingsModal";
 
 type Payload = {
   message: string;
@@ -13,6 +14,7 @@ function App() {
   const [shouldMic, setShouldMic] = useState(true);
   const [shouldTts, setShouldTts] = useState(false);
   const [typing, setTyping] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
     setText(event.target.value)
@@ -43,24 +45,6 @@ function App() {
         setShouldMic(true)
         button.style.filter = "invert(0%)"
         console.log("Audio Collecting Turned Off")
-      }
-    }
-  }
-
-  const handlTtsClick = () => {
-    const button = document.getElementById('ttsButton');
-    if (button) {
-      if (!shouldTts) {
-        setShouldTts(true)
-        setBackendTTS()
-        button.style.filter = "invert(100%)"
-        console.log("WILL TTS")
-
-      } else {
-        setShouldTts(false)
-        setBackendTTS()
-        button.style.filter = "invert(0%)"
-        console.log("WILL NOT TTS")
       }
     }
   }
@@ -116,11 +100,14 @@ function App() {
     <div className="container">
       <ChatFrame initialMessages={messages} typing={typing}></ChatFrame>
       <form onSubmit={handleFormSubmit} style={{ justifyContent: 'center', marginTop: 10, marginBottom: 10 }}>
-        <button id="ttsButton" type="button" onClick={handlTtsClick}>TTS</button>
+        <button id="settingsButton" type="button" onClick={() => {setShowSettings(true)}}>Settings</button>
         <button id="micButton" type="button" onClick={handlMicClick}>-</button>
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>
       </form>
+      <SettingsModal show={showSettings} onClose={() => {setShowSettings(false)}} title="pussy">
+        <h1>inside the modal???</h1>
+      </SettingsModal>
     </div>
   )
 }
