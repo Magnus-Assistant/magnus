@@ -127,6 +127,7 @@ fn run_stream(audio_input_sender: Sender<Vec<i16>>, device: Device, transcribing
             println!("Transcription finished, exiting input stream.");
             break
         }
+        thread::sleep(Duration::from_millis(100));
     }
 }
 
@@ -137,6 +138,9 @@ pub fn run() -> Option<String> {
     // find an input device
     let audio_input_device = get_audio_input_device();
     let audio_input_config = audio_input_device.default_input_config().unwrap();
+
+    println!("Input Sample Rate: {:?}", audio_input_config.sample_rate());
+    println!(" Input Channels: {:?}", audio_input_config.channels());
 
     // spawn the transcription thread
     let audio_input_receiver_clone = audio_input_receiver.clone();

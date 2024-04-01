@@ -79,6 +79,7 @@ pub fn run_stream(audio_output_receiver: Receiver<Vec<i16>>, device: Device, syn
         else if !*synthesizing.lock().unwrap() && audio_output_receiver_clone.is_empty() {
             return Ok(())
         }
+        thread::sleep(Duration::from_millis(100));
     }
 }
 
@@ -89,7 +90,10 @@ pub async fn speak(assistant_message: String) -> Result<(), Box<dyn Error>> {
 
     // find an output device
     let audio_output_device = get_audio_output_device();
-    let audio_output_config = audio_output_device.default_output_config().unwrap();    
+    let audio_output_config = audio_output_device.default_output_config().unwrap();  
+
+    println!("Output Sample Rate: {:?}", audio_output_config.sample_rate());
+    println!("Output Channels: {:?}", audio_output_config.channels());
 
     // spawn create_speech with sender
     *synthesizing.lock().unwrap() = true;
