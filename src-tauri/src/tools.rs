@@ -26,9 +26,9 @@ pub enum Action {
 }
 
 pub struct Tool {
-    pub action: Action,
-    pub description: String,
-    pub permissions: Option<Vec<Permission>>
+    pub action: Action, // the function that runs when Magnus uses the tool
+    pub description: String, // the message that is displayed on the frontend when Magnus uses the tool
+    pub permissions: Option<Vec<Permission>> // the list of Permissions needed to execute the tool
 }
 
 impl Tool {
@@ -74,6 +74,7 @@ impl Tool {
     }
 }
 
+// create Tools here to be exposed in assistant.rs
 lazy_static! {
     pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string(), Some(vec![Clipboard]));
     pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string(), None);

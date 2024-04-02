@@ -58,6 +58,8 @@ pub fn check(required: Vec<Permission>) -> Option<String> {
     }
     else {
         let all_denied: Vec<&str> = denied.iter().map(|p| p.as_str()).collect();
+
+        // this message could potentially use tweaking
         return Some(format!("You MUST tell the user they need to allow access to ALL of the following features in settings: {}", all_denied.join(", ")))
     }
 }
