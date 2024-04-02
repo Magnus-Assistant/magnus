@@ -1,59 +1,58 @@
-/*import React from 'react';
-import Modal from 'react-bootstrap/Modal';
-import 'bootstrap/dist/css/bootstrap.min.css'
-
-interface Props {
-  show: boolean;
-  setShow: (arg0: boolean) => void;
-}
-
-const SettingsModal: React.FC<Props> = ({ show, setShow }) => {
-  if (!show) {
-    return null;
-  }
-
-  return (
-    <Modal
-        size="lg"
-        show={show}
-        onHide={() => setShow(false)}
-        aria-labelledby="example-modal-sizes-title-lg"
-    >
-        <Modal.Header closeButton>
-            <Modal.Title id="example-modal-sizes-title-lg">
-                Large Modal
-            </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>...</Modal.Body>
-    </Modal>
-  );
-};
-
-export default SettingsModal;
-*/
-import React from 'react';
-import './styles.css'; // Importing our custom CSS
+import React, { useState } from 'react'
+import './styles.css'
+import { invoke } from "@tauri-apps/api/tauri"
 
 interface ModalProps {
   show: boolean;
   onClose: () => void;
-  title: string;
-  children: React.ReactNode;
 }
 
-const SettingsModal: React.FC<ModalProps> = ({ show, onClose, title, children }) => {
+const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
+
+  const [toggles, setToggles] = useState({
+    toggle1: false,
+    toggle2: false,
+    toggle3: false,
+  });
+
+  const handleSubmit = async () => {
+    // Send toggle values to Rust backend
+    // await invoke('submit_toggle_data', { });
+  };
+
+  const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setToggles({ ...toggles, [event.target.name]: event.target.checked });
+  };
 
   return (
     <div className="modal-backdrop">
       <div className="large-modal">
         <div className="modal-header">
-          <h5>{title}</h5>
+          <h2>Settings</h2>
           <button onClick={onClose}>&times;</button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div className="modal-body">
+            <form>
+              {Object.entries(toggles).map(([name, value]) => (
+                <div key={name} className="form-item">
+                  <label htmlFor={name}>{name}</label>
+                  <label className="switch">
+                    <input
+                      name={name}
+                      type="checkbox"
+                      checked={value}
+                      onChange={handleToggle}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+              ))}
+          </form>
+        </div>
         <div className="modal-footer">
           <button onClick={onClose}>Close</button>
+          <button onClick={handleSubmit}>Submit</button>
         </div>
       </div>
     </div>

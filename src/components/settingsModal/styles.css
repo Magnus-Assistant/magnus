@@ -12,8 +12,10 @@
 }
 
 .large-modal {
-    width: 60%; /* Controls the size of the modal */
-    background-color: #fff;
+    min-width: 30%;
+    max-height: 80%;
+    max-width: 40%;
+    background-color: #2f2f2f;
     padding: 20px;
     border-radius: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -50,5 +52,72 @@
 
 .modal-body {
     overflow-y: auto;
-    max-height: 70vh; /* Ensures modal content is scrollable if it overflows */
+    max-height: 70vh;
+}
+
+.form-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px; /* Slimmer */
+    height: 24px; /* Slimmer */
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    height: 20px; /* Adjust height for slimmer look */
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px; /* Adjust to fit within slimmer slider */
+    width: 16px;  /* Adjust for a more circular look */
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
 }

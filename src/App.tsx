@@ -105,9 +105,7 @@ function App() {
         <input className="userTextBox" id="userTextBox" type="text" value={text} onChange={changeText} />
         <button type="submit">Send</button>
       </form>
-      <SettingsModal show={showSettings} onClose={() => {setShowSettings(false)}} title="pussy">
-        <h1>inside the modal???</h1>
-      </SettingsModal>
+      <SettingsModal show={showSettings} onClose={() => {setShowSettings(false)}} />
     </div>
   )
 }
