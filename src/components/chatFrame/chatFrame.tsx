@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import ChatBubble from "../chatBubble/chatBubble"
+import TypingIndicator from "../typingIndicator/typingIndicator";
 import "./styles.css"
 
 // This chatFrame will contain the chat bubbles from the user and from magnuss
-
 export type Message = {
     type: 'magnus' | 'user';
     text: string
@@ -11,6 +11,7 @@ export type Message = {
 
 export interface ChatFrameProps {
     initialMessages: Message[];
+    typing: boolean;
 }
 
 export function scrollToBottom() {
@@ -18,12 +19,11 @@ export function scrollToBottom() {
 
     // if we have a frame make sure that it always renders at the newest message
     if (frame) {
-        console.log("we have a chat frame");
         frame.scrollTop = frame.scrollHeight;
     }
 }
 
-const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages }) => {
+const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages, typing }) => {
 
     useEffect(() => {
         // Initialize messages with initialMessages when provided
@@ -42,7 +42,9 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages }) => {
                     ) : (
                         <ChatBubble key={index} text={message.text} chat_style="userChatBubble"></ChatBubble>
                     )
-                ))}
+                ))
+            }
+            <TypingIndicator typing={typing} />
         </div>
     )
 }

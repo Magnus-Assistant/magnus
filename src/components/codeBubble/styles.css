@@ -1,0 +1,47 @@
+.codeBubble {
+    text-align: left;
+    white-space: pre-wrap;
+    padding: 0px;
+    max-width: 65%;
+    min-width: 35%;
+    width: fit-content;
+    margin: 10px;
+    margin-right: auto;
+    position: relative;
+}
+
+.codeBubbleHeader {
+    display: flex;
+    justify-content: space-between;
+    background-color:#111111;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    height: 40px;
+}
+
+.codeLanguage {
+    margin: 15px;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    color: lightgrey;
+}
+
+.copyButtonGroup {
+    justify-content: space-between;
+}
+
+.copyButton {
+    padding: 8px;
+    margin: 2px;
+    width: auto;
+    height: 36px;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.codeBlock {
+    padding: 1px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: #2d2d2d;
+}

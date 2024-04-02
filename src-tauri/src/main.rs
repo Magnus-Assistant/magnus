@@ -12,7 +12,8 @@ mod assistant;
 mod audio_input;
 mod audio_output;
 mod globals;
-mod tools;
+mod permissions;
+mod tools; 
 
 lazy_static! {
     static ref HAS_TTS: Mutex<bool> = Mutex::new(false);
@@ -68,7 +69,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             let _ = app_handle.emit_all(
                 "magnus",
                 Payload {
-                    message: assistant_message.clone().replace('"', ""),
+                    message: assistant_message.clone(),
                 },
             );
 

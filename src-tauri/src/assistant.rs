@@ -1,5 +1,5 @@
 use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
-use crate::tools;
+use crate::tools::*;
 use reqwest::Error;
 use std::time::Duration;
 use crossbeam::channel::Sender;
@@ -9,7 +9,7 @@ use ogg::reading::async_api::PacketReader;
 use tokio_util::io::StreamReader;
 use cpal::SampleRate;
 use tokio_stream::StreamExt;
-
+use serde_json::{Map, Value};
 
 pub async fn run(user_message: String) -> String {
     let message = serde_json::json!({
@@ -112,7 +112,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                     if let Some(tool_call_obj) = tool_call.as_object() {
                         // println!("\ntool_call:\n{:#?}", tool_call);
 
-                        let function_name = &tool_call_obj["function"]["name"]
+                        let tool = &tool_call_obj["function"]["name"]
                             .to_string()
                             .trim_matches('"')
                             .to_string();
@@ -127,11 +127,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
 
                         match arguments_object {
                             Ok(args) => {
-                                if args.is_empty() {
-                                    tool_output = execute(function_name, None).await?;
-                                } else {
-                                    tool_output = execute(function_name, Some(args)).await?;
-                                }
+                                tool_output = execute(tool, args).await?;
                             }
                             Err(_) => {
                                 tool_output = "No arguments key found in tool call".to_string()
@@ -192,8 +188,8 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
 
     let messages = response.json::<serde_json::Value>().await?;
 
-    let assistant_response = messages["data"][0]["content"][0]["text"]["value"].to_string();
-    
+    let assistant_response = messages["data"][0]["content"][0]["text"]["value"].as_str().unwrap().to_string();
+
     Ok(assistant_response)
 }
 
@@ -254,57 +250,18 @@ pub async fn create_speech(assistant_message: String, audio_output_sender: Sende
     Ok(())
 }
 
-async fn execute(
-    function_name: &str,
-    arguments: Option<serde_json::Map<String, serde_json::Value>>,
-) -> Result<String, Error> {
-    println!(
-        "wants to call: {}\nwith args: {:#?}",
-        function_name, arguments
-    );
-    let result: String;
+async fn execute(tool: &str, args: Map<String, Value>) -> Result<String, Error> {
+    println!("wants to use {} tool with args:\n{:#?}", tool, args);
 
-    match arguments {
-        // functions with arguments
-        Some(args) => {
-            result = match function_name {
-                "get_location_coordinates" => {
-                    if let Some(location) = args.get("location").and_then(|v| v.as_str()) {
-                        tools::get_location_coordinates(location).await
-                    } else {
-                        panic!("Failed to find location is arguments object.")
-                    }
-                }
-                "get_forecast" => {
-                    if let (Some(latitude), Some(longitude), Some(n_days)) = (
-                        args.get("latitude"),
-                        args.get("longitude"),
-                        args.get("n_days"),
-                    ) {
-                        tools::get_forecast(
-                            &latitude.to_string(),
-                            &longitude.to_string(),
-                            &n_days.to_string(),
-                        )
-                        .await
-                    } else {
-                        panic!("Failed to find latitude, longitude, or number of days in arguments object.")
-                    }
-                }
-                _ => panic!("No function name given with arguments."),
-            };
-        }
-        // functions without arguments
-        None => {
-            result = match function_name {
-                "get_user_coordinates" => tools::get_user_coordinates().await,
-                "get_clipboard_text" => tools::get_clipboard_text(),
-                "get_screenshot" => tools::get_screenshot().await,
-                "get_time" => tools::get_time(),
-                _ => panic!("No function name given without arguments."),
-            };
-        }
-    }
+    let result = match tool {
+        "CLIPBOARD" => CLIPBOARD.execute(args).await,
+        "FORECAST" => FORECAST.execute(args).await,
+        "LOCATION_COORDINATES" => LOCATION_COORDINATES.execute(args).await,
+        "SCREENSHOT" => SCREENSHOT.execute(args).await,
+        "TIME" => TIME.execute(args).await,
+        "USER_COORDINATES" => USER_COORDINATES.execute(args).await,
+        _ => todo!()
+    };
 
     Ok(result)
 }
