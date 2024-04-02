@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import './styles.css'
-import { invoke } from "@tauri-apps/api/tauri"
+// import { invoke } from "@tauri-apps/api/tauri"
 
 interface ModalProps {
   show: boolean;
@@ -10,20 +10,38 @@ interface ModalProps {
 const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
+  // TODO: get the users current permisions json
   const [toggles, setToggles] = useState({
-    toggle1: false,
-    toggle2: false,
-    toggle3: false,
+    Location: false,
+    Clipboard: false,
+    Screenshot: false,
   });
-
-  const handleSubmit = async () => {
-    // Send toggle values to Rust backend
-    // await invoke('submit_toggle_data', { });
-  };
 
   const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setToggles({ ...toggles, [event.target.name]: event.target.checked });
   };
+
+  useEffect(() => {
+    // TODO: update the permissions.json
+    console.log(toggles)
+  }, [toggles])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const modal = document.querySelector('.large-modal');
+      if (modal && !modal.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (show) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [show, onClose]);
 
   return (
     <div className="modal-backdrop">
@@ -49,10 +67,6 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
                 </div>
               ))}
           </form>
-        </div>
-        <div className="modal-footer">
-          <button onClick={onClose}>Close</button>
-          <button onClick={handleSubmit}>Submit</button>
         </div>
       </div>
     </div>
