@@ -6,6 +6,20 @@
     overflow-y: scroll;
     flex-grow: 1;
     height: auto;
-    max-height: 90vh;
+    max-height: 93vh;
     border-radius: 10px;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    border-radius: 8px;
+    background-color: none;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    background-color: rgb(170, 170, 170);
 }
