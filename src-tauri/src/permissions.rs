@@ -1,6 +1,6 @@
 use Permission::*;
 use serde_json::{to_string_pretty, Value};
-use std::{fs::File, io::{Read, Write}};
+use std::{fs::{self, File}, io::Read};
 
 #[derive(Clone)]
 pub enum Permission {
@@ -25,8 +25,7 @@ impl Permission {
 
 pub fn update(permissions: Value) {
     let pretty_json = to_string_pretty(&permissions).unwrap();
-    let mut file = File::create("permissions.json").expect("Failed to create permissions.json!");
-    file.write_all(pretty_json.as_bytes()).expect("Failed to write to file");
+    let _ = fs::write("permissions.json", pretty_json.as_bytes()).expect("Failed to update permissions.json!");
 }
 
 fn get() -> Value {
