@@ -26,21 +26,21 @@
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
     margin-bottom: 10px;
 }
 
 .modal-header button {
     cursor: pointer;
-    background: none;
     border: 1px solid white;
-    width: 40px;
-    height: 40px;
+    border-radius: 10%;
+    height: 34px;
+    width: 34px;
+    background: none;
 }
 
-.modal-header button:hover {
-    background-color: #dd0000;
-}
+.modal-header button:hover { 
+    background-color: #3f3f3f;
+} 
 
 .modal-body {
     overflow-y: auto;
@@ -113,4 +113,7 @@ input:checked + .slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
-  
+
+.label {
+    font-size: 18px;
+}

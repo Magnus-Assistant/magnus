@@ -54,7 +54,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
             <form>
               {Object.entries(toggles).map(([name, value]) => (
                 <div key={name} className="form-item">
-                  <label htmlFor={name}>{name}</label>
+                  <label className="label" htmlFor={name}>{name}</label>
                   <label className="switch">
                     <input
                       name={name}
