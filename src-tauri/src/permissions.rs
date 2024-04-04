@@ -28,7 +28,7 @@ pub fn update(permissions: Value) {
     let _ = fs::write("permissions.json", pretty_json.as_bytes()).expect("Failed to update permissions.json!");
 }
 
-fn get() -> Value {
+fn get_permissions() -> Value {
     let mut file = File::open("permissions.json").expect("Failed to open permissions.json!");
     let mut json_string = String::new();
     file.read_to_string(&mut json_string).expect("Failed to read permissions.json!");
@@ -37,7 +37,7 @@ fn get() -> Value {
 }
 
 pub fn check(required: Vec<Permission>) -> Option<String> {
-    let permissions = get();
+    let permissions = get_permissions();
     let mut denied: Vec<Permission> = vec![];
 
     for permission in required {
