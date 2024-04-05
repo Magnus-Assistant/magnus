@@ -52,14 +52,6 @@ button {
   color: rgb(118, 118, 118);
 }
 
-button svg path {
-  fill: rgb(170, 170, 170)
-}
-
-button:hover svg path {
-  fill: white
-}
-
 #micButton {
   background-size: 80%;
   background-position: center;
