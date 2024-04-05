@@ -14,7 +14,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   const [toggles, setToggles] = useState({
     Location: false,
     Clipboard: false,
-    Screenshot: false,
+    Screenshot: false
   });
 
   const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +27,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   }, [toggles])
 
   useEffect(() => {
+    // when clicking anywhere except on the settings modal, close the modal
     const handleClickOutside = (event: MouseEvent) => {
       const modal = document.querySelector('.large-modal');
       if (modal && !modal.contains(event.target as Node)) {
@@ -34,14 +35,16 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
       }
     };
 
+    // add outside click listener if the settings modal is being showed
     if (show) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
+    // cleanup click listener on component unmount or for when show changes again
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [show, onClose]);
+  }, [show]);
 
   return (
     <div className="modal-backdrop">
