@@ -29,7 +29,7 @@ Without these two traits, we are unable to define the Tools as public static ref
 
 AsyncAction returns a Future that results in a String, which must be wrapped in a Box since the size of the Future in
 memory is not statically known, it can vary. Wrapping the Future in a Box creates the Future in heap-space, where the
-size can vary. This Box is then wrapped in a Pin which just ensures that the Box doesn't get moved around in memory.
+size is able vary. This Box is then wrapped in a Pin which just ensures that the Box doesn't get moved around in memory.
 */
 type SyncAction = dyn Fn(Map<String, Value>) -> String + Send + Sync;
 type AsyncAction = dyn Fn(Map<String, Value>) -> Pin<Box<dyn Future<Output = String> + Send>> + Send + Sync;
