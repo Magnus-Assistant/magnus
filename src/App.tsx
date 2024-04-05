@@ -15,7 +15,7 @@ function App() {
   const [text, setText] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([]);
   const [shouldMic, setShouldMic] = useState(true);
-  const [typing, setTyping] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
   const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,7 +27,7 @@ function App() {
     //create a new message and set the message in local state
     if (text) {
       setTimeout(scrollToBottom, 30);
-      setTyping(true)
+      setLoading(true)
       //dont use the microphone   
       runConversationFlow(false);
       setText('');
@@ -83,7 +83,7 @@ function App() {
 
         await listen<Payload>("magnus", (response) => {
           if (typeof (response.payload.message) === 'string') {
-            setTyping(false)
+            setLoading(false)
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
@@ -95,7 +95,7 @@ function App() {
 
   return (
     <div className="container">
-      <ChatFrame initialMessages={messages} typing={typing}></ChatFrame>
+      <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
       <form onSubmit={handleFormSubmit} className="bottomBar">
         <button id="settingsButton" type="button" onClick={() => {setShowSettings(true)}}>
           <img src={SettingsIcon} />
