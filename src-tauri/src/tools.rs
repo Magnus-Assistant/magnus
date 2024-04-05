@@ -17,6 +17,20 @@ use std::{
 };
 use urlencoding::encode;
 
+/*
+All actions MUST:
+1. Take one arg, a serde_json::Map with String keys and serde_json::Value values. If the action doesn't need args,
+then name the arg in the function signature as an underscore.
+
+Traits:
+Send - this is needed so that the Tool can be transferred to another thread
+Sync - this is needed so that the Tool can be access from multiple threads
+Without these two traits, we are unable to define the Tools as public static references and use them in assistant.rs
+
+AsyncAction returns a Future that results in a String, which must be wrapped in a Box since the size of the Future in
+memory is not statically known, it can vary. Wrapping the Future in a Box creates the Future in heap-space, where the
+size is able vary. This Box is then wrapped in a Pin which just ensures that the Box doesn't get moved around in memory.
+*/
 type SyncAction = dyn Fn(Map<String, Value>) -> String + Send + Sync;
 type AsyncAction = dyn Fn(Map<String, Value>) -> Pin<Box<dyn Future<Output = String> + Send>> + Send + Sync;
 
@@ -26,9 +40,9 @@ pub enum Action {
 }
 
 pub struct Tool {
-    pub action: Action,
-    pub description: String,
-    pub permissions: Option<Vec<Permission>>
+    pub action: Action, // the function that runs when Magnus uses the tool
+    pub description: String, // the message that is displayed on the frontend when Magnus uses the tool
+    pub permissions: Option<Vec<Permission>> // the list of Permissions needed to execute the tool
 }
 
 impl Tool {
@@ -74,6 +88,7 @@ impl Tool {
     }
 }
 
+// create Tools here to be exposed in assistant.rs
 lazy_static! {
     pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string(), Some(vec![Clipboard]));
     pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string(), None);
