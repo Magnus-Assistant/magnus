@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react'
 import './styles.css'
-// import { invoke } from "@tauri-apps/api/tauri"
+import { invoke } from "@tauri-apps/api/tauri"
 
 interface ModalProps {
   show: boolean;
   onClose: () => void;
 }
 
+interface Permissions {
+  [key: string]: boolean;
+}
+
 const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
-  // TODO: get the users current permisions json
-  const [toggles, setToggles] = useState({
-    Location: false,
-    Clipboard: false,
-    Screenshot: false
-  });
+  const [toggles, setToggles] = useState<Permissions>({})
+  useEffect(() => {
+    invoke("get_permissions").then((permissions: any) => {
+      setToggles(permissions as Permissions)
+    })
+  }, [])
 
   const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setToggles({ ...toggles, [event.target.name]: event.target.checked });
@@ -24,6 +28,12 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   useEffect(() => {
     // TODO: update the permissions.json
     console.log(toggles)
+    async function updatePermissions() {
+      await invoke("update_permissions", { permissions: toggles }).then(() => {
+        console.log("updating permissions")
+      })
+    }
+    updatePermissions()
   }, [toggles])
 
   useEffect(() => {
