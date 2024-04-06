@@ -1,6 +1,6 @@
 use Permission::*;
 use serde_json::{to_string_pretty, Map, Value};
-use std::{fs::{self, File}, io::Read};
+use std::{fs::{self, File}, io::Read, path::PathBuf};
 use strum_macros::EnumIter;
 use strum::IntoEnumIterator;
 
@@ -25,24 +25,40 @@ impl Permission {
     }
 }
 
+pub fn get_file_path() -> PathBuf {
+    let mut path = tauri::api::path::data_dir().unwrap();
+    path.push("magnus");
+    path.push("permissions.json");
+    path    
+}
+
+pub fn get_magnus_data_dir_path() -> PathBuf {
+    let mut path = tauri::api::path::data_dir().unwrap();
+    path.push("magnus");
+    path    
+}
+
 pub fn create_permissions() {
-    println!("creating permissions!");
     let mut permissions_json = Map::new();
     for permission in Permission::iter() {
         permissions_json.insert(permission.as_str().to_string(), Value::Bool(false));
     }
     let pretty_json = to_string_pretty(&permissions_json).unwrap();
-    let _ = fs::write("permissions.json", pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+
+    // create the magnus directory within the system's app data directory
+    let _ = fs::create_dir(get_magnus_data_dir_path());
+
+    // create the permissions.json file with all false values
+    let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
 }
 
 pub fn update_permissions(permissions: Value) {
-    
     let pretty_json = to_string_pretty(&permissions).unwrap();
-    let _ = fs::write("permissions.json", pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+    let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
 }
 
 pub fn get_permissions() -> Value {
-    match File::open("permissions.json") {
+    match File::open(get_file_path()) {
         Ok(mut file) => {
             let mut json_string = String::new();
             file.read_to_string(&mut json_string).expect("Failed to read permissions.json!");
