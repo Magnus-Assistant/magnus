@@ -66,7 +66,7 @@ function App() {
     if (!hasBeenCalledRef.current) {
       hasBeenCalledRef.current = true
 
-      const grabTranscription = async () => {
+      const startListeners = async () => {
         await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
             const newMessage: Message = { type: 'user', text: response.payload.message }
@@ -88,8 +88,16 @@ function App() {
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
         })
+
+        // listen for when magnus takes an action
+        await listen<Payload>("action", (response) => {
+          if (typeof (response.payload.message) === "string") {
+            const actionMessage: Message = {type: 'magnus', text: response.payload.message }
+            setMessages((prevMessages) => [...prevMessages, actionMessage])  
+          }
+        })
       }
-      grabTranscription();
+      startListeners();
     }
   }, [])
 

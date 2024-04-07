@@ -42,6 +42,8 @@ tokio-util = { version = "0.7.10", features = ["io"] }
 tokio-stream = "0.1.14"
 dotenv = "0.15.0"
 futures = "0.3.30"
+strum = "0.26.2"
+strum_macros = "0.26.2"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
