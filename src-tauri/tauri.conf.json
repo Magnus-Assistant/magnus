@@ -21,8 +21,34 @@
       "active": true,
       "targets": "all",
       "identifier": "com.magnus.dev",
-      "icon": ["./icons/icon.png", "./icons/icon.ico"],
-      "resources": ["./libgcc_s_seh-1.dll", "./libstdc++-6.dll", "./libvosk.dll", "./libvosk.dylib", "./libvosk.lib", "./libwinpthread-1.dll", "./models/vosk-model-small-en-us-0.15/", "./permissions.json"]
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/magnus.icns",
+        "icons/magnus.ico",
+        "icons/magnus.png",
+        "icons/Square30x30Logo.png",
+        "icons/Square44x44Logo.png",
+        "icons/Square71x71Logo.png",
+        "icons/Square89x89Logo.png",
+        "icons/Square107x107Logo.png",
+        "icons/Square142x142Logo.png",
+        "icons/Square150x150Logo.png",
+        "icons/Square284x284Logo.png",
+        "icons/Square310x310Logo.png",
+        "icons/StoreLogo.png"
+      ],
+      "resources": [
+        "./libgcc_s_seh-1.dll",
+        "./libstdc++-6.dll",
+        "./libvosk.dll",
+        "./libvosk.dylib",
+        "./libvosk.lib",
+        "./libwinpthread-1.dll",
+        "./models/vosk-model-small-en-us-0.15/",
+        "./permissions.json"
+      ]
     },
     "security": {
       "csp": null
