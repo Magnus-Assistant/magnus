@@ -2,6 +2,7 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use dotenv;
+use lazy_static::lazy_static;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use std::thread;
