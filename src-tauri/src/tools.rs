@@ -2,6 +2,7 @@ use crate::globals::{
     get_ip_api_key, get_opencage_key, get_reqwest_client, get_weather_api_user_agent,
 };
 use crate::permissions::{check, Permission, Permission::*};
+use crate::{Payload, APP_HANDLE};
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -12,6 +13,7 @@ use image::{
 use lazy_static::lazy_static;
 use scrap::{Capturer, Display};
 use serde_json::{Map, Value};
+use tauri::Manager;
 use std::{
     fs::File, future::Future, io::ErrorKind::WouldBlock, path::Path, pin::Pin, sync::Arc, thread::sleep, time::Duration
 };
@@ -79,6 +81,10 @@ impl Tool {
         }
 
         // TODO: emit the description to the frontend
+        if let Some(app_handle) = APP_HANDLE.lock().unwrap().as_ref() {
+            let narration = format!("*{}...*", &self.description);
+            let _ = app_handle.emit_all("action", Payload { message: narration });
+        }
         println!("**{}...**", &self.description);
 
         match &self.action {
