@@ -17,10 +17,11 @@ mod tools;
 
 lazy_static! {
     static ref HAS_TTS: Mutex<bool> = Mutex::new(false);
+    static ref APP_HANDLE: Arc<Mutex<Option<AppHandle>>> = Arc::new(Mutex::new(None));
 }
 
 #[derive(Clone, serde::Serialize)]
-struct Payload {
+pub struct Payload {
     message: String,
 }
 
@@ -132,6 +133,7 @@ fn main() {
     tauri::Builder::default()
         .setup(move |app| {
             let app_handle = app.handle();
+            *APP_HANDLE.lock().unwrap() = Some(app_handle.clone());
             let mut shortcuts = app_handle.global_shortcut_manager();
             let running_keybind_flow_clone = running_keybind_flow.clone();
 
