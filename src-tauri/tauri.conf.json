@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "magnus",
+    "productName": "Magnus",
     "version": "0.0.0"
   },
   "tauri": {
