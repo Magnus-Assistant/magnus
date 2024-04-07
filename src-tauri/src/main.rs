@@ -2,7 +2,7 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use dotenv;
-use lazy_static::lazy_static;
+use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, GlobalShortcutManager, Manager};
@@ -16,7 +16,6 @@ mod permissions;
 mod tools; 
 
 lazy_static! {
-    static ref HAS_TTS: Mutex<bool> = Mutex::new(false);
     static ref APP_HANDLE: Arc<Mutex<Option<AppHandle>>> = Arc::new(Mutex::new(None));
 }
 
@@ -39,15 +38,21 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-async fn set_tts(tts_value: bool) { 
-    *HAS_TTS.lock().unwrap() = tts_value;
+fn get_permissions() -> Value {
+    permissions::get_permissions()
+}
+
+#[tauri::command]
+async fn update_permissions(permissions: Value) {
+    println!("{permissions:?}");
+    permissions::update_permissions(permissions)
 }
 
 #[tauri::command]
 async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) {
 
-    let should_tts = *HAS_TTS.lock().unwrap();
-    println!("HAS TTS: {}", should_tts);
+    let should_tts = permissions::get_permissions().get("Tts").unwrap().as_bool().unwrap();
+    println!("TTS enabled?: {}", should_tts);
 
     // if we have no user message, attempt to get speech input
     let user_message = match user_message {
@@ -161,7 +166,7 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_conversation_flow, set_tts])
+        .invoke_handler(tauri::generate_handler![run_conversation_flow, get_permissions, update_permissions])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
