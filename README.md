@@ -17,7 +17,7 @@ Leveraging the industry leading AI model from Open AI, [GPT-4](https://openai.co
 
 # Safety
 
-Currently, when attempting to download and install Magnus, your browser and/or system may flag it as unsafe. We are aware of this issue, and are moving towards solutions to this in future releases. In the meantime, we have provided a step-by-step work around to this issue for each platform. We encourage you to look at the source code in this repository if you have any concerns.
+Currently, when attempting to download and install Magnus, your browser and/or system may flag it as unsafe. We are aware of this issue, and are moving towards solutions to this in future releases. We encourage you to look at the source code in this repository if you have any concerns.
 
 ---
 
