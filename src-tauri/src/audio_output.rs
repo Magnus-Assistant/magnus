@@ -35,7 +35,7 @@ pub fn run_stream(
     device: Device,
     synthesizing: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn Error>> {
-    let format = device.default_input_config().unwrap().sample_format();
+    let format = device.default_output_config().unwrap().sample_format();
     let mut config: StreamConfig = device.default_output_config().unwrap().into();
     let (error_sender, error_receiver): (Sender<StreamError>, Receiver<StreamError>) = bounded(1);
 
@@ -59,8 +59,7 @@ pub fn run_stream(
 
     let audio_output_receiver_clone = audio_output_receiver.clone();
 
-    let mut smples: VecDeque<f32> = VecDeque::new();
-
+    // fix for mac static issue
     #[cfg(target_os = "macos")]
     {
         config = StreamConfig {
@@ -73,17 +72,7 @@ pub fn run_stream(
     let stream = match format {
         cpal::SampleFormat::F32 => device.build_output_stream(
             &config.clone().into(),
-            // move |data: &mut [f32], _| {
             move |data: &mut [f32], _| write_audio(data, audio_output_receiver.clone()),
-            //     if let Ok(samples) = audio_output_receiver.try_recv() {
-            //         smples.extend(samples.into_iter().map(f32::from_sample));
-            //     }
-            //     for chunk in data.chunks_mut(2) {
-            //         for sample in chunk.iter_mut() {
-            //             *sample = smples.pop_front().unwrap_or(0.0);
-            //         }
-            //     }
-            // },
             move |e| error_callback(e, error_sender.clone()),
             None,
         ),
