@@ -9,7 +9,6 @@ interface Props {
 
 const ChatBubble: React.FC<Props> = ({ text, chat_style }) => {
     let codeChunks = text.match(/```[^```]+```/g) || []
-
     let textChunks = text.split(/```[^```]+```/)
     textChunks = textChunks.filter(chunk => chunk.trim() !== '');
 
@@ -18,16 +17,29 @@ const ChatBubble: React.FC<Props> = ({ text, chat_style }) => {
             {textChunks.map((text, _) => {
                 // Check if codeChunks has at least one element before shifting
                 const codeChunk = codeChunks.length > 0 ? codeChunks.shift() : null;
-                return (
-                    <>
-                        <div className={chat_style}>
-                            <Markdown className={"markdown"}>
+    
+                if (chat_style === "magnusChatBubble") {
+                    return (
+                        <>
+                            <div className={chat_style}>
+                                <Markdown className={"markdown"}>
+                                    {text.trim()}
+                                </Markdown>
+                            </div>
+                            {codeChunk && <CodeBubble codeChunk={codeChunk} />}
+                        </>
+                    );
+                }
+                else {
+                    return (
+                        <>
+                            <div className={chat_style}>
                                 {text.trim()}
-                            </Markdown>
-                        </div>
-                        {codeChunk && <CodeBubble codeChunk={codeChunk} />}
-                    </>
-                );
+                            </div>
+                            {codeChunk && <CodeBubble codeChunk={codeChunk} />}
+                        </>
+                    );
+                }
             })}
         </span>
     )

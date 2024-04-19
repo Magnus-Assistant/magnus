@@ -51,7 +51,7 @@ const CodeBubble: React.FC<Props> = ({ codeChunk }) => {
                     </button>
                 </div>
                 <div className='codeBlock'>
-                    <Prism language={language} style={tomorrow}>
+                    <Prism language={language} style={tomorrow} customStyle={{backgroundColor: '#3c3c3c'}}>
                         {code}
                     </Prism>
                 </div>

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/tauri"
 import { listen } from '@tauri-apps/api/event'
 import React, { FormEvent, useEffect, useRef, useState } from 'react'
-import ChatFrame, { Message, scrollToBottom } from "./components/chatFrame/chatFrame";
+import ChatFrame, { Message } from "./components/chatFrame/chatFrame";
 import SettingsModal from "./components/settingsModal/settingsModal";
 import SettingsIcon from "./assets/SettingsIcon.svg"
 import MicIcon from "./assets/MicIcon.svg"
@@ -17,10 +17,7 @@ function App() {
   const [shouldMic, setShouldMic] = useState(true);
   const [loading, setLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-
-  const changeText = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setText(event.target.value)
-  }
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleFormSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -31,6 +28,19 @@ function App() {
       //dont use the microphone   
       runConversationFlow(false);
       setText('');
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      if (text) {
+        setTimeout(scrollToBottom, 30);
+        setLoading(true)
+        //dont use the microphone   
+        runConversationFlow(false);
+        setText('');
+      }
     }
   };
 
@@ -101,17 +111,26 @@ function App() {
     }
   }, [])
 
+  const scrollToBottom = () => {
+    window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})
+  }
+
+  // scroll to bottom on new messages
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
   return (
     <div className="container">
       <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
-      <form onSubmit={handleFormSubmit} className="bottomBar">
+      <form ref={formRef} onSubmit={handleFormSubmit} className="bottomBar">
         <button id="settingsButton" type="button" onClick={() => {setShowSettings(true)}}>
           <img src={SettingsIcon} />
         </button>
         <button id="micButton" type="button" onClick={handlMicClick}>
           <img src={MicIcon} />
         </button>
-        <input value={text} onChange={changeText} />
+        <textarea value={text} onChange={event => {setText(event.target.value)}} onKeyDown={handleKeyDown}/>
         <button type="submit" id="submitButton">
           <img src={SendIcon} />
         </button>

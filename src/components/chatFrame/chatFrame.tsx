@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import ChatBubble from "../chatBubble/chatBubble"
 import LoadingIndicator from "../loadingIndicator/loadingIndicator";
 import "./styles.css"
@@ -14,25 +13,8 @@ export interface ChatFrameProps {
     loading: boolean;
 }
 
-export function scrollToBottom() {
-    const frame = document.getElementById('ChatFrame');
-
-    // if we have a frame make sure that it always renders at the newest message
-    if (frame) {
-        frame.scrollTop = frame.scrollHeight;
-    }
-}
 
 const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages, loading }) => {
-
-    useEffect(() => {
-        // Initialize messages with initialMessages when provided
-        if (initialMessages) {
-            setTimeout(scrollToBottom, 0);
-        }
-
-    }, [initialMessages]);
-
     return (
         <div className="ChatFrame" id="ChatFrame">
             {

@@ -6,7 +6,11 @@
     border-radius: 10px;
     width: fit-content;
     padding: 12px;
-    background-color: #3834F0;
+
+    /* toggle these and see what you like best */
+    background-color: #111111;
+    /* background-color: #212121; */
+    /* background-color: #3c3c3c;     */
 }
   
 .loading-indicator span {
@@ -14,7 +18,7 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background-color: white;
+    background-color: lightgrey;
     margin: 0 5px;
     animation: blink 2s infinite both;
 }

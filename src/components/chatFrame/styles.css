@@ -2,12 +2,11 @@
     grid-template-rows: min-content;
     grid-template-columns: auto;
     flex-direction: column;
-    background-color: #0f0f0f98;
     overflow-y: scroll;
     flex-grow: 1;
-    height: auto;
-    max-height: 93vh;
-    border-radius: 10px;
+    height: 100%;
+    width: 100%;
+    margin-bottom: 60px;
 }
 
 ::-webkit-scrollbar {
@@ -17,9 +16,11 @@
 ::-webkit-scrollbar-track {
     border-radius: 8px;
     background-color: none;
+    cursor: pointer;
 }
 
 ::-webkit-scrollbar-thumb {
     border-radius: 8px;
     background-color: rgb(170, 170, 170);
+    cursor: pointer;
 }

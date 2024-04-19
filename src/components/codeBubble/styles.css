@@ -41,7 +41,25 @@
 
 .codeBlock {
     padding: 1px;
+    background-color: #3c3c3c;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
-    background-color: #2d2d2d;
 }
+
+.codeBlock pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.codeBlock pre::-webkit-scrollbar-track {
+    border-radius: 8px;
+    background-color: none;
+    cursor: pointer;
+}
+
+.codeBlock pre::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    background-color: rgb(170, 170, 170);
+    cursor: pointer;
+}
+  

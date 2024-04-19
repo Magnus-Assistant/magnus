@@ -1,7 +1,5 @@
 .userChatBubble {
-    background-color: #5cb85c;
-    color: #000;
-    text-align: left;
+    color: lightgrey;
     border-radius: 10px;
     padding: 10px;
     padding-top: 1px;
@@ -11,11 +9,19 @@
     margin: 10px;
     margin-left: auto;
     position: relative;
+    white-space: pre-wrap;
+    text-align: left;
+    padding: 8px;
+    padding-inline-start: 10px;
+    padding-inline-end: 10px;
+
+    /* toggle these and see what you like best */
+    background-color: #002a79;
+    /* background-color: #8e4200; */
 }
 
 .magnusChatBubble {
-    background-color: #3834F0;
-    color: #fff;
+    color: lightgrey;
     text-align: left;
     border-radius: 10px;
     padding: 10px;
@@ -26,6 +32,11 @@
     margin: 10px;
     margin-right: auto;
     position: relative;
+
+    /* toggle these and see what you like best */
+    background-color: #111111;
+    /* background-color: #212121; */
+    /* background-color: #3c3c3c; */
 }
 
 .markdown * {
