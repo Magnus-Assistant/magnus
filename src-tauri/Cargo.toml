@@ -44,6 +44,7 @@ dotenv = "0.15.0"
 futures = "0.3.30"
 strum = "0.26.2"
 strum_macros = "0.26.2"
+regex = "1.10.4"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
