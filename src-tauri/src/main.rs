@@ -86,7 +86,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
             let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
 
-            if should_tts && text_to_speak != "" {
+            if should_tts && text_to_speak.trim() != "" {
                 thread::spawn(move || {
                     let rt = Runtime::new().unwrap();
                     rt.block_on(async {
