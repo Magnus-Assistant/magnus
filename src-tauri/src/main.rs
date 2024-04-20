@@ -3,6 +3,7 @@
 
 use dotenv;
 use lazy_static::lazy_static;
+use regex::Regex;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -71,6 +72,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
                     message: user_message.clone(),
                 },
             );
+
             let assistant_message = assistant::run(user_message).await;
             println!("Magnus: {assistant_message}");
             let _ = app_handle.emit_all(
@@ -80,12 +82,15 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
                 },
             );
 
-            if should_tts {
-                let assistant_message_clone = assistant_message.clone();
+            // exclude code snippets from tts
+            let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
+            let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
+
+            if should_tts && text_to_speak != "" {
                 thread::spawn(move || {
                     let rt = Runtime::new().unwrap();
                     rt.block_on(async {
-                        let _ = audio_output::speak(assistant_message_clone).await;
+                        let _ = audio_output::speak(text_to_speak.clone()).await;
                     });
                 });
             }

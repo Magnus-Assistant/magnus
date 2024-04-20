@@ -8,36 +8,33 @@ interface Props {
 }
 
 const ChatBubble: React.FC<Props> = ({ text, chat_style }) => {
-    let codeChunks = text.match(/```[^```]+```/g) || []
-    let textChunks = text.split(/```[^```]+```/)
-    textChunks = textChunks.filter(chunk => chunk.trim() !== '');
+    // split text into a list of strings of the text chunks and code snippets
+    let chunks = text.split(/(?=\n`{3}.)|(?<=`{3})\n/).map(chunk => chunk.trim())
 
     return (
         <span>
-            {textChunks.map((text, _) => {
-                // Check if codeChunks has at least one element before shifting
-                const codeChunk = codeChunks.length > 0 ? codeChunks.shift() : null;
-    
+            {chunks.map(chunk => {
                 if (chat_style === "magnusChatBubble") {
-                    return (
-                        <>
+                    if (chunk.startsWith("```") && chunk.endsWith("```")) {
+                        return (
+                            <CodeBubble codeChunk={chunk} />
+                        )
+                    }
+                    else {
+                        return (
                             <div className={chat_style}>
                                 <Markdown className={"markdown"}>
-                                    {text.trim()}
+                                    {chunk}
                                 </Markdown>
                             </div>
-                            {codeChunk && <CodeBubble codeChunk={codeChunk} />}
-                        </>
-                    );
+                        )
+                    }
                 }
                 else {
                     return (
-                        <>
-                            <div className={chat_style}>
-                                {text.trim()}
-                            </div>
-                            {codeChunk && <CodeBubble codeChunk={codeChunk} />}
-                        </>
+                        <div className={chat_style}>
+                            {chunk}
+                        </div>
                     );
                 }
             })}
