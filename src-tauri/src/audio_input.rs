@@ -23,6 +23,14 @@ pub fn get_audio_input_device() -> Device {
     audio_input_device
 }
 
+pub fn get_audio_input_device_list() -> Vec<Device> {
+    let host = cpal::default_host();
+
+    let input_devices = host.input_devices().unwrap().collect::<Vec<_>>();
+    
+    input_devices
+}
+
 pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
     let mut recognizer = Recognizer::new(&get_vosk_model(), sample_rate.0 as f32).unwrap();
     println!("Speak..."); // eventually it would be nice to emit an audio cue telling the user they can speak

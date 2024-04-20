@@ -15,9 +15,19 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
   const [toggles, setToggles] = useState<Permissions>({})
+
+  // get all info needed for the settings modal
   useEffect(() => {
     invoke("get_permissions").then((permissions: any) => {
       setToggles(permissions as Permissions)
+    })
+
+    invoke("get_audio_input_devices").then((audio_input_devices: any) => {
+      console.log(audio_input_devices)
+    })
+
+    invoke("get_audio_output_devices").then((audio_output_devices: any) => {
+      console.log(audio_output_devices)
     })
   }, [])
 
@@ -26,12 +36,8 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   };
 
   useEffect(() => {
-    // TODO: update the permissions.json
-    console.log(toggles)
     async function updatePermissions() {
-      await invoke("update_permissions", { permissions: toggles }).then(() => {
-        console.log("updating permissions")
-      })
+      await invoke("update_permissions", { permissions: toggles })
     }
     updatePermissions()
   }, [toggles])

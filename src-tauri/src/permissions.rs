@@ -53,8 +53,10 @@ pub fn create_permissions() {
 }
 
 pub fn update_permissions(permissions: Value) {
-    let pretty_json = to_string_pretty(&permissions).unwrap();
-    let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+    if permissions != Value::Object(Map::new()) {
+        let pretty_json = to_string_pretty(&permissions).unwrap();
+        let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+    }
 }
 
 pub fn get_permissions() -> Value {
@@ -63,6 +65,13 @@ pub fn get_permissions() -> Value {
             let mut json_string = String::new();
             file.read_to_string(&mut json_string).expect("Failed to read permissions.json!");
             let permissions: Value = serde_json::from_str(&json_string).expect("Failed to parse permissions.json!");
+
+            // fix empty permisisons file
+            if permissions == Value::Object(Map::new()) {
+                create_permissions();
+                return get_permissions()
+            }
+
             return permissions    
         },
         Err(err) => {

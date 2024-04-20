@@ -30,6 +30,14 @@ pub fn get_audio_output_device() -> Device {
     audio_output_device
 }
 
+pub fn get_audio_output_device_list() -> Vec<Device> {
+    let host = cpal::default_host();
+
+    let output_devices = host.output_devices().unwrap().collect::<Vec<_>>();
+
+    output_devices
+}
+
 pub fn run_stream(
     audio_output_receiver: Receiver<Vec<i16>>,
     device: Device,

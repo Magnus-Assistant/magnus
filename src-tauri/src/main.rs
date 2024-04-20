@@ -45,9 +45,22 @@ fn get_permissions() -> Value {
 }
 
 #[tauri::command]
-async fn update_permissions(permissions: Value) {
+fn update_permissions(permissions: Value) {
     println!("{permissions:?}");
     permissions::update_permissions(permissions)
+}
+
+#[tauri::command]
+fn get_audio_input_devices() -> Value {
+    let input_devices = audio_input::get_audio_input_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+
+    Value::Array(input_devices)
+}
+#[tauri::command]
+fn get_audio_output_devices() -> Value {
+    let output_devices = audio_output::get_audio_output_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+
+    Value::Array(output_devices)
 }
 
 #[tauri::command]
@@ -98,7 +111,10 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
     }
 }
 
+use cpal::traits::DeviceTrait;
 fn main() {
+    get_audio_input_devices();
+    get_audio_output_devices();
     // load env
     if cfg!(debug_assertions) {
         dotenv::dotenv().ok();
@@ -169,7 +185,7 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_conversation_flow, get_permissions, update_permissions])
+        .invoke_handler(tauri::generate_handler![run_conversation_flow, get_permissions, update_permissions, get_audio_input_devices, get_audio_output_devices])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
