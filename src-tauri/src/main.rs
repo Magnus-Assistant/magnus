@@ -52,10 +52,6 @@ async fn update_permissions(permissions: Value) {
 
 #[tauri::command]
 async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) {
-
-    let should_tts = permissions::get_permissions().get("Tts").unwrap().as_bool().unwrap();
-    println!("TTS enabled?: {}", should_tts);
-
     // if we have no user message, attempt to get speech input
     let user_message = match user_message {
         Some(message) => Some(message),
@@ -85,6 +81,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             // exclude code snippets from tts
             let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
             let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
+            let should_tts: bool = permissions::get_permissions().get("Tts").unwrap().as_bool().unwrap();
 
             if should_tts && text_to_speak.trim() != "" {
                 thread::spawn(move || {
