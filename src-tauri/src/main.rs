@@ -14,7 +14,7 @@ mod assistant;
 mod audio_input;
 mod audio_output;
 mod globals;
-mod permissions;
+mod settings;
 mod tools; 
 
 lazy_static! {
@@ -41,13 +41,12 @@ async fn create_message_thread() -> String {
 
 #[tauri::command]
 fn get_permissions() -> Value {
-    permissions::get_permissions()
+    settings::get_permissions()
 }
 
 #[tauri::command]
 fn update_permissions(permissions: Value) {
-    println!("{permissions:?}");
-    permissions::update_permissions(permissions)
+    settings::update_permissions(permissions)
 }
 
 #[tauri::command]
@@ -94,7 +93,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             // exclude code snippets from tts
             let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
             let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
-            let should_tts: bool = permissions::get_permissions().get("Tts").unwrap().as_bool().unwrap();
+            let should_tts: bool = settings::get_permissions().get("Tts").unwrap().as_bool().unwrap();
 
             if should_tts && text_to_speak.trim() != "" {
                 thread::spawn(move || {

@@ -1,7 +1,7 @@
 use crate::globals::{
     get_ip_api_key, get_opencage_key, get_reqwest_client, get_weather_api_user_agent,
 };
-use crate::permissions::{check, Permission, Permission::*};
+use crate::settings::{check_permissions, Permission, Permission::*};
 use crate::{Payload, APP_HANDLE};
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
@@ -74,7 +74,7 @@ impl Tool {
     pub async fn execute(&self, args: Map<String, Value>) -> String {
         // check if all permissions are satisfied
         if let Some(permissions) = &self.permissions {
-            if let Some(result) = check(permissions.to_vec()) {
+            if let Some(result) = check_permissions(permissions.to_vec()) {
                 println!("got result !!! {}", result.clone());
                 return result
             }

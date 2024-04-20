@@ -87,7 +87,7 @@ pub fn get_permissions() -> Value {
     }
 }
 
-pub fn check(required: Vec<Permission>) -> Option<String> {
+pub fn check_permissions(required: Vec<Permission>) -> Option<String> {
     let permissions = get_permissions();
     let mut denied: Vec<Permission> = vec![];
 
