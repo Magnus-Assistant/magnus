@@ -4,7 +4,7 @@
 use dotenv;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, GlobalShortcutManager, Manager};
@@ -52,14 +52,36 @@ fn update_permissions(permissions: Value) {
 #[tauri::command]
 fn get_audio_input_devices() -> Value {
     let input_devices = audio_input::get_audio_input_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+    let current_device = audio_input::get_current_audio_input_device();
 
-    Value::Array(input_devices)
+    Value::Object(json!({
+        "devices": input_devices,
+        "selected": current_device.name().unwrap()
+    }).as_object().unwrap().clone())
 }
 #[tauri::command]
 fn get_audio_output_devices() -> Value {
     let output_devices = audio_output::get_audio_output_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+    let current_device = audio_output::get_current_audio_output_device();
 
-    Value::Array(output_devices)
+    Value::Object(json!({
+        "devices": output_devices,
+        "selected": current_device.name().unwrap()
+    }).as_object().unwrap().clone())
+}
+
+#[tauri::command]
+fn audio_input_device_selection(device_name: String) {
+    let mut settings = settings::get_settings().as_object_mut().unwrap().clone();
+    settings.insert("audioInputDeviceSelection".to_string(), Into::<Value>::into(device_name));
+    settings::update_settings(Into::<Value>::into(settings));
+}
+
+#[tauri::command]
+fn audio_output_device_selection(device_name: String) {
+    let mut settings = settings::get_settings().as_object_mut().unwrap().clone();
+    settings.insert("audioOutputDeviceSelection".to_string(), Into::<Value>::into(device_name));
+    settings::update_settings(Into::<Value>::into(settings));
 }
 
 #[tauri::command]
@@ -112,8 +134,6 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
 
 use cpal::traits::DeviceTrait;
 fn main() {
-    get_audio_input_devices();
-    get_audio_output_devices();
     // load env
     if cfg!(debug_assertions) {
         dotenv::dotenv().ok();
@@ -184,7 +204,15 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_conversation_flow, get_permissions, update_permissions, get_audio_input_devices, get_audio_output_devices])
+        .invoke_handler(tauri::generate_handler![
+            run_conversation_flow,
+            get_permissions,
+            update_permissions,
+            get_audio_input_devices,
+            get_audio_output_devices,
+            audio_input_device_selection,
+            audio_output_device_selection
+            ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

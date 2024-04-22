@@ -1,8 +1,17 @@
+use cpal::traits::DeviceTrait;
 use Permission::*;
 use serde_json::{to_string_pretty, Map, Value};
 use std::{fs::{self, File}, io::Read, path::PathBuf};
 use strum_macros::EnumIter;
 use strum::IntoEnumIterator;
+
+use crate::{audio_input, audio_output};
+
+pub fn get_magnus_data_dir_path() -> PathBuf {
+    let mut path = tauri::api::path::data_dir().unwrap();
+    path.push("magnus");
+    path    
+}
 
 #[derive(Clone, EnumIter)]
 pub enum Permission {
@@ -25,16 +34,10 @@ impl Permission {
     }
 }
 
-pub fn get_file_path() -> PathBuf {
+pub fn get_permissions_file_path() -> PathBuf {
     let mut path = tauri::api::path::data_dir().unwrap();
     path.push("magnus");
     path.push("permissions.json");
-    path    
-}
-
-pub fn get_magnus_data_dir_path() -> PathBuf {
-    let mut path = tauri::api::path::data_dir().unwrap();
-    path.push("magnus");
     path    
 }
 
@@ -49,18 +52,18 @@ pub fn create_permissions() {
     let _ = fs::create_dir(get_magnus_data_dir_path());
 
     // create the permissions.json file with all false values
-    let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+    let _ = fs::write(get_permissions_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
 }
 
 pub fn update_permissions(permissions: Value) {
     if permissions != Value::Object(Map::new()) {
         let pretty_json = to_string_pretty(&permissions).unwrap();
-        let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+        let _ = fs::write(get_permissions_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
     }
 }
 
 pub fn get_permissions() -> Value {
-    match File::open(get_file_path()) {
+    match File::open(get_permissions_file_path()) {
         Ok(mut file) => {
             let mut json_string = String::new();
             file.read_to_string(&mut json_string).expect("Failed to read permissions.json!");
@@ -111,5 +114,61 @@ pub fn check_permissions(required: Vec<Permission>) -> Option<String> {
 
         // this message could potentially use tweaking
         return Some(format!("You MUST tell the user they need to allow access to ALL of the following features in settings: {}", all_denied.join(", ")))
+    }
+}
+
+pub fn get_settings_file_path() -> PathBuf {
+    let mut path = tauri::api::path::data_dir().unwrap();
+    path.push("magnus");
+    path.push("settings.json");
+    path    
+}
+
+pub fn create_settings() {
+    let settings_json = serde_json::json!({
+        "audioInputDeviceSelection": audio_input::get_default_audio_input_device().name().unwrap(),
+        "audioOutputDeviceSelection": audio_output::get_default_audio_output_device().name().unwrap()
+    }).as_object().unwrap().clone();
+
+    let pretty_json = to_string_pretty(&settings_json).unwrap();
+
+    // create the magnus directory within the system's app data directory
+    let _ = fs::create_dir(get_magnus_data_dir_path());
+
+    let _ = fs::write(get_settings_file_path(), pretty_json.as_bytes()).expect("Failed to update settings.json!");
+}
+
+pub fn update_settings(settings: Value) {
+    if settings != Value::Object(Map::new()) {
+        let pretty_json = to_string_pretty(&settings).unwrap();
+        let _ = fs::write(get_settings_file_path(), pretty_json.as_bytes()).expect("Failed to update settings.json!");
+   }
+}
+
+pub fn get_settings() -> Value {
+    match File::open(get_settings_file_path()) {
+        Ok(mut file) => {
+            let mut json_string = String::new();
+            file.read_to_string(&mut json_string).expect("Failed to read settings.json!");
+            let settings: Value = serde_json::from_str(&json_string).expect("Failed to parse settings.json!");
+
+            // fix empty settings file
+            if settings == Value::Object(Map::new()) {
+                create_settings();
+                return get_settings()
+            }
+
+            return settings    
+        },
+        Err(err) => {
+            if err.kind() == std::io::ErrorKind::NotFound {
+                println!("no settings.json file!!!");
+                create_settings();
+                return get_settings()
+            }
+            else {
+                todo!()
+            }
+        }
     }
 }

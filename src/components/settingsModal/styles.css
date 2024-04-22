@@ -12,21 +12,21 @@
 }
 
 .large-modal {
-    min-width: 30%;
+    min-width: 40%;
     max-height: 80%;
-    max-width: 40%;
+    max-width: 60%;
     background-color: #2f2f2f;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: lightgrey;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 10px;
+    padding: 0 10px;
 }
 
 .modal-header button {
@@ -45,9 +45,11 @@
 .modal-body {
     overflow-y: auto;
     max-height: 70vh;
+    padding: 0 10px;
+    font-size: 18px;
 }
 
-.form-item {
+.permissions {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -116,4 +118,67 @@ input:checked + .slider:before {
 
 .label {
     font-size: 18px;
+}
+
+.section-title {
+    text-align: left;
+    padding: 4px;
+}
+
+/* Hide the default radio button */
+.device-list input[type="radio"] {
+    opacity: 0; /* `visibility: hidden` also works */
+    position: absolute;
+}
+
+/* Style for the container */
+.device-list > div {
+    padding: 6px;
+    width: max-content;
+    margin-right: auto;
+}
+
+/* Custom radio button style */
+.device-list label {
+    position: relative;
+    padding-left: 30px;
+    cursor: pointer;
+    display: inline-block;
+    line-height: 20px;
+}
+
+/* Custom checkmark/indicator */
+.device-list label:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
+
+/* When the radio button is checked, change background */
+.device-list input[type="radio"]:checked + label:before {
+    background-color: #2196F3;
+}
+
+/* Style for the checkmark indicator (inside the circle) */
+.device-list label:after {
+    content: "";
+    position: absolute;
+    display: none;
+    top: 6px;
+    left: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+}
+
+/* Show the indicator inside the button when checked */
+.device-list input[type="radio"]:checked + label:after {
+    display: block;
 }
