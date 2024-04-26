@@ -15,7 +15,6 @@
     min-width: 30%;
     max-height: 80%;
     max-width: 40%;
-    background-color: #2f2f2f;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -25,21 +24,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #eee;
     margin-bottom: 10px;
 }
 
 .modal-header button {
     cursor: pointer;
-    border: 1px solid white;
     border-radius: 10%;
     height: 34px;
     width: 34px;
     background: none;
-}
-
-.modal-header button:hover { 
-    background-color: #3f3f3f;
 } 
 
 .modal-body {
@@ -78,6 +71,7 @@
     -webkit-transition: .4s;
     transition: .4s;
     height: 22px;
+    border: 1px solid whitesmoke;
 }
 
 .slider:before {
@@ -116,4 +110,43 @@ input:checked + .slider:before {
 
 .label {
     font-size: 18px;
+}
+
+@media (prefers-color-scheme: light) {
+    .large-modal {
+        background-color: whitesmoke;
+        color: #2f2f2f;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid gainsboro;
+        color: #2f2f2f;
+    }
+
+    .modal-header button {
+        border: 1px solid gainsboro;
+        color: #2f2f2f;
+    }
+
+    .modal-header button:hover { 
+        background-color: gainsboro;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .large-modal {
+        background-color: #2f2f2f;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid #eee;
+    }
+
+    .modal-header button {
+        border: 1px solid white;
+    }
+
+    .modal-header button:hover { 
+        background-color: #3f3f3f;
+    }
 }

@@ -3,10 +3,6 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -28,10 +24,8 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  color: #0f0f0f;
   transition: border-color 0.25s;
   cursor: pointer;
-  color: rgb(118, 118, 118);
 }
 
 #micButton {
@@ -46,10 +40,7 @@ button {
   width: 50vw;
   min-width: 500px;
   overflow: hidden;
-  outline: 1px solid rgb(118, 118, 118);
   border-radius: 8px;
-  background-color: #111111;
-  background-color: #1f1f1f;
   position: fixed;
   left: 50%;
   bottom: 0;
@@ -67,9 +58,6 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  border-right: 1px solid rgb(118, 118, 118);
-  border-left: 1px solid rgb(118, 118, 118);
-  background-color: #111111;
 }
 
 textarea {
@@ -78,7 +66,6 @@ textarea {
   resize: none;
   width: 50vw;
   font-size: 1em;
-  color: lightgrey;
   font-family: inherit;
   align-self: center;
   line-height: 20px;
@@ -100,7 +87,6 @@ textarea::-webkit-scrollbar-track {
 
 textarea::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  background-color: rgb(170, 170, 170);
   cursor: pointer;
 }
 
@@ -112,18 +98,51 @@ textarea::-webkit-scrollbar-thumb {
   border-left: 1px solid transparent;
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    background-color: white;
+  }
+
+  .bottomBar {
+    outline: 1px solid grey;
+    background-color: gainsboro;
+  }
+
+  .bottomBar > * {
+    border-right: 1px solid grey;
+    background-color: gainsboro;
+  }
+
+  textarea {
+    color: #2f2f2f;
+    background-color: gainsboro;
+  }
+
+  textarea::-webkit-scrollbar-thumb {
+    background-color: gainsboro;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f6f6f6;
     background-color: #2f2f2f;
   }
 
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
+  .bottomBar {
+    outline: 1px solid rgb(118, 118, 118);
+    background-color: #1f1f1f;
   }
-  button:active {
-    background-color: #0f0f0f69;
+
+  .bottomBar > * {
+    border-right: 1px solid rgb(118, 118, 118);
+    background-color: #111111;  
+  }
+
+  textarea {
+    color: lightgrey;
+  }
+
+  textarea::-webkit-scrollbar-thumb {
+    background-color: rgb(170, 170, 170);
   }
 }
