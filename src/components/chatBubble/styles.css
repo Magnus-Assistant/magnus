@@ -1,5 +1,4 @@
 .userChatBubble {
-    color: lightgrey;
     border-radius: 10px;
     padding: 10px;
     padding-top: 1px;
@@ -14,14 +13,9 @@
     padding: 8px;
     padding-inline-start: 10px;
     padding-inline-end: 10px;
-
-    /* toggle these and see what you like best */
-    background-color: #002a79;
-    /* background-color: #8e4200; */
 }
 
 .magnusChatBubble {
-    color: lightgrey;
     text-align: left;
     border-radius: 10px;
     padding: 10px;
@@ -32,14 +26,42 @@
     margin: 10px;
     margin-right: auto;
     position: relative;
-
-    /* toggle these and see what you like best */
-    background-color: #111111;
-    /* background-color: #212121; */
-    /* background-color: #3c3c3c; */
 }
 
 .markdown * {
     margin-block-start: 7px;
     margin-block-end: 7px;
+}
+
+@media (prefers-color-scheme: light) {
+    .userChatBubble {
+        color: #2f2f2f;
+        background-color: #8bc0f4;
+    }
+
+    .magnusChatBubble {
+        color: #2f2f2f;
+
+        /* toggle these and see what you like best */
+        background-color: gainsboro;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .userChatBubble {
+        color: lightgrey;
+
+        /* toggle these and see what you like best */
+        background-color: #002a79;
+        /* background-color: #8e4200; */
+    }
+
+    .magnusChatBubble {
+        color: lightgrey;
+
+        /* toggle these and see what you like best */
+        background-color: #111111;
+        /* background-color: #212121; */
+        /* background-color: #3c3c3c; */
+    }
 }

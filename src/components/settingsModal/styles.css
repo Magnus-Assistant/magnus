@@ -26,20 +26,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 10px;
+    margin-bottom: 10px;
 }
 
 .modal-header button {
     cursor: pointer;
-    border: 1px solid white;
     border-radius: 10%;
     height: 34px;
     width: 34px;
     background: none;
-}
-
-.modal-header button:hover { 
-    background-color: #3f3f3f;
 } 
 
 .modal-body {
@@ -80,6 +75,7 @@
     -webkit-transition: .4s;
     transition: .4s;
     height: 22px;
+    border: 1px solid whitesmoke;
 }
 
 .slider:before {

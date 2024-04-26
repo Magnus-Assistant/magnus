@@ -21,6 +21,17 @@
 
 ::-webkit-scrollbar-thumb {
     border-radius: 8px;
-    background-color: rgb(170, 170, 170);
     cursor: pointer;
+}
+
+@media (prefers-color-scheme: light) {
+    ::-webkit-scrollbar-thumb {
+        background-color: gainsboro;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-thumb {
+        background-color: rgb(170, 170, 170);
+    }
 }
