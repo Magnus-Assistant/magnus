@@ -1,8 +1,8 @@
 .signinwrapper {
     display: flex;
     flex-direction: column;
-    height: 150vh;
-    width: 100vh;
+    height: 350px;
+    width: 250px;
     background-color: whitesmoke;
     justify-content: center;
     margin: auto;
