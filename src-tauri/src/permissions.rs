@@ -1,6 +1,6 @@
 use Permission::*;
 use serde_json::{to_string_pretty, Map, Value};
-use std::{fs::{self, File}, io::Read, path::PathBuf};
+use std::{ fs::{self, File}, io::Read, path::PathBuf};
 use strum_macros::EnumIter;
 use strum::IntoEnumIterator;
 
@@ -46,14 +46,24 @@ pub fn create_permissions() {
     let pretty_json = to_string_pretty(&permissions_json).unwrap();
 
     // create the magnus directory within the system's app data directory
-    let _ = fs::create_dir(get_magnus_data_dir_path());
+    match fs::create_dir(get_magnus_data_dir_path()) {
+        Ok(_) => println!("Created Directory"),
+        Err(err) => println!("Error Creating Directory: {}", err),
+    }
+
 
     // create the permissions.json file with all false values
-    let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
+    match fs::write(get_file_path(), pretty_json.as_bytes()) {
+        Ok(_) => println!("Successfully created permissions File with contents: {}", pretty_json),
+        Err(err) => {
+            println!("Error creating file: {}", err);
+        },
+    }
 }
 
 pub fn update_permissions(permissions: Value) {
     let pretty_json = to_string_pretty(&permissions).unwrap();
+    println!("Updating permissions with these values: {}", permissions);
     let _ = fs::write(get_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
 }
 
@@ -63,6 +73,7 @@ pub fn get_permissions() -> Value {
             let mut json_string = String::new();
             file.read_to_string(&mut json_string).expect("Failed to read permissions.json!");
             let permissions: Value = serde_json::from_str(&json_string).expect("Failed to parse permissions.json!");
+            println!("File exists and was successfully opened: {}", permissions);
             return permissions    
         },
         Err(err) => {
@@ -70,9 +81,8 @@ pub fn get_permissions() -> Value {
                 println!("no permissions.json file!!!");
                 create_permissions();
                 return get_permissions()
-            }
-            else {
-                todo!()
+            } else {
+                todo!();
             }
         }
     }

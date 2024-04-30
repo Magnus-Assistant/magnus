@@ -2,12 +2,14 @@
     display: flex;
     flex-direction: column;
     height: 350px;
-    width: 250px;
+    width: 290px;
     background-color: whitesmoke;
     justify-content: center;
     margin: auto;
     margin-top: 20vh;
     border-radius: 5px;
+    border: 2px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .signupformbutton {
@@ -25,10 +27,31 @@
 .signintextwrapper {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
     margin: auto;
+    margin-top: 0px;
+}
+
+.signinheader {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.signintext {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 6px;
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-weight: 500;
 }
 
 .signinbuttonwrapper {
     display: flex;
     flex-direction: row;
+    margin-bottom: 10px;
 }

@@ -1,4 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
+import "./styles.css"
 
 // I figured we could have this in the settings or something?
 const LogoutButton: React.FC = () => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import './styles.css'
 import { invoke } from "@tauri-apps/api/tauri"
 import LogoutButton from '../logoutButton/logoutButton';
+import UserIcon from '../userIcon/userIcon';
 
 interface ModalProps {
   show: boolean;
@@ -27,12 +28,12 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   };
 
   useEffect(() => {
-    // TODO: update the permissions.json
-    console.log(toggles)
     async function updatePermissions() {
-      await invoke("update_permissions", { permissions: toggles }).then(() => {
-        console.log("updating permissions")
-      })
+      if (Object.keys(toggles).length > 0) {
+        await invoke("update_permissions", { permissions: toggles }).then(() => {
+          console.log("updating permissions")
+        })
+      }
     }
     updatePermissions()
   }, [toggles])
@@ -65,24 +66,27 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
           <button onClick={onClose}>&times;</button>
         </div>
         <div className="modal-body">
-            <form>
-              {Object.entries(toggles).map(([name, value]) => (
-                <div key={name} className="form-item">
-                  <label className="label" htmlFor={name}>{name}</label>
-                  <label className="switch">
-                    <input
-                      name={name}
-                      type="checkbox"
-                      checked={value}
-                      onChange={handleToggle}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </div>
-              ))}
+          <form>
+            {Object.entries(toggles).map(([name, value]) => (
+              <div key={name} className="form-item">
+                <label className="label" htmlFor={name}>{name}</label>
+                <label className="switch">
+                  <input
+                    name={name}
+                    type="checkbox"
+                    checked={value}
+                    onChange={handleToggle}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+            ))}
           </form>
         </div>
+        <div className='accountwrapper'>
+        <UserIcon></UserIcon>
         <LogoutButton></LogoutButton>
+        </div>
       </div>
     </div>
   );

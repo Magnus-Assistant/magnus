@@ -56,7 +56,6 @@ fn get_permissions() -> Value {
 
 #[tauri::command]
 async fn update_permissions(permissions: Value) {
-    println!("{permissions:?}");
     permissions::update_permissions(permissions)
 }
 
