@@ -189,3 +189,42 @@ input:checked+.slider:before {
 .accountwrapper {
     display: flex;
 }
+
+@media (prefers-color-scheme: light) {
+    .large-modal {
+        background-color: whitesmoke;
+        color: #2f2f2f;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid gainsboro;
+        color: #2f2f2f;
+    }
+
+    .modal-header button {
+        border: 1px solid gainsboro;
+        color: #2f2f2f;
+    }
+
+    .modal-header button:hover { 
+        background-color: gainsboro;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .large-modal {
+        background-color: #2f2f2f;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid #eee;
+    }
+
+    .modal-header button {
+        border: 1px solid white;
+    }
+
+    .modal-header button:hover { 
+        background-color: #3f3f3f;
+    }
+}
