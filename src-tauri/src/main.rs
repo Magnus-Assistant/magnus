@@ -40,6 +40,16 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+fn get_auth_client_id() -> String {
+    globals::get_auth_client_id().to_string()
+}
+
+#[tauri::command]
+fn get_auth_domain() -> String {
+    globals::get_auth_domain().to_string()
+}
+
+#[tauri::command]
 fn get_permissions() -> Value {
     settings::get_permissions()
 }
@@ -138,8 +148,7 @@ fn main() {
     if cfg!(debug_assertions) {
         dotenv::dotenv().ok();
         println!("dev!!!!");
-    }
-    else {
+    } else {
         #[cfg(target_os = "windows")]
         let env = include_str!("..\\.env");
 
@@ -151,16 +160,16 @@ fn main() {
             if line.trim().is_empty() || line.starts_with('#') {
                 continue;
             }
-    
+
             if let Some((key, value)) = line.split_once('=') {
                 // trim potential whitespace
                 let key = key.trim();
                 let value = value.trim();
-    
+
                 // set environment variable
                 std::env::set_var(key, value);
             }
-        }    
+        }
         println!("prod!!!!");
     }
 
@@ -211,8 +220,10 @@ fn main() {
             get_audio_input_devices,
             get_audio_output_devices,
             audio_input_device_selection,
-            audio_output_device_selection
-            ])
+            audio_output_device_selection,
+            get_auth_client_id,
+            get_auth_domain
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

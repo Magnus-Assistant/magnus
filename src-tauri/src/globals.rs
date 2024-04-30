@@ -66,6 +66,20 @@ lazy_static! {
             Err(_) => { println!("Could not fetch OpenCage API key!"); return "".to_string() }
         }
     };
+
+    static ref AUTH_DOMAIN: String = {
+        match env::var("AUTH_DOMAIN") {
+            Ok(value) => value,
+            Err(_) => { println!("Could not fetch auth domain!"); return "".to_string() }
+        }
+    };
+
+    static ref AUTH_CLIENT_ID: String = {
+        match env::var("AUTH_CLIENT_ID") {
+            Ok(value) => value,
+            Err(_) => { println!("Could not fetch auth client ID!"); return "".to_string() }
+        }
+    };
 }
 
 pub fn get_reqwest_client() -> &'static Client {
@@ -102,4 +116,12 @@ pub fn get_thread_id() -> String {
 
 pub fn set_thread_id(new_value: String) {
     *THREAD_ID.lock().unwrap() = new_value;
+}
+
+pub fn get_auth_domain() -> &'static String {
+    &AUTH_DOMAIN
+}
+
+pub fn get_auth_client_id() -> &'static String {
+    &AUTH_CLIENT_ID
 }
