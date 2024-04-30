@@ -3,6 +3,7 @@ import './styles.css'
 import { invoke } from "@tauri-apps/api/tauri"
 import CicularLoading from "../circularLoading/circularLoading"
 import LogoutButton from '../logoutButton/logoutButton';
+import UserIcon from '../userIcon/userIcon';
 
 interface ModalProps {
   show: boolean;
@@ -22,8 +23,8 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
   const [permissions, setPermissions] = useState<Permissions>({})
-  const [audioInputDeviceSelection, setAudioInputDeviceSelection] = useState<AudioDeviceSelection>({devices: [], selected: ""})
-  const [audioOutputDeviceSelection, setAudioOutputDeviceSelection] = useState<AudioDeviceSelection>({devices: [], selected: ""})
+  const [audioInputDeviceSelection, setAudioInputDeviceSelection] = useState<AudioDeviceSelection>({ devices: [], selected: "" })
+  const [audioOutputDeviceSelection, setAudioOutputDeviceSelection] = useState<AudioDeviceSelection>({ devices: [], selected: "" })
   const [inputDeviceSelected, setInputDeviceSelected] = useState<String>("")
   const [outputDeviceSelected, setOutputDeviceSelected] = useState<String>("")
 
@@ -40,7 +41,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
         setAudioInputDeviceSelection(audioInputDeviceSelection)
         // console.log(audioInputDeviceSelection.selected)
       })
-  
+
       invoke("get_audio_output_devices").then((audioOutputDeviceSelection: any) => {
         setOutputDeviceSelected(audioOutputDeviceSelection.selected)
         setAudioOutputDeviceSelection(audioOutputDeviceSelection)
@@ -58,7 +59,11 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
 
   useEffect(() => {
     async function updatePermissions() {
-      await invoke("update_permissions", { permissions: permissions })
+      if (Object.keys(permissions).length > 0) {
+        await invoke("update_permissions", { permissions: permissions }).then(() => {
+          console.log("updating permissions")
+        })
+      }
     }
     updatePermissions()
   }, [permissions])
@@ -159,12 +164,15 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
                   ))}
                 </div>
               </div>
-              ) : (
-                <CicularLoading />
-              )}
+            ) : (
+              <CicularLoading />
+            )}
           </div>
         </div>
-        <LogoutButton></LogoutButton>
+        <div className='accountwrapper'>
+          <UserIcon></UserIcon>
+          <LogoutButton></LogoutButton>
+        </div>
       </div>
     </div>
   );

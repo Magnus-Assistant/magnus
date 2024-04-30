@@ -1,7 +1,7 @@
 use cpal::traits::DeviceTrait;
 use Permission::*;
 use serde_json::{to_string_pretty, Map, Value};
-use std::{fs::{self, File}, io::Read, path::PathBuf};
+use std::{ fs::{self, File}, io::Read, path::PathBuf};
 use strum_macros::EnumIter;
 use strum::IntoEnumIterator;
 
@@ -49,7 +49,11 @@ pub fn create_permissions() {
     let pretty_json = to_string_pretty(&permissions_json).unwrap();
 
     // create the magnus directory within the system's app data directory
-    let _ = fs::create_dir(get_magnus_data_dir_path());
+    match fs::create_dir(get_magnus_data_dir_path()) {
+        Ok(_) => println!("Created Directory"),
+        Err(err) => println!("Error Creating Directory: {}", err),
+    }
+
 
     // create the permissions.json file with all false values
     let _ = fs::write(get_permissions_file_path(), pretty_json.as_bytes()).expect("Failed to update permissions.json!");
@@ -82,9 +86,8 @@ pub fn get_permissions() -> Value {
                 println!("no permissions.json file!!!");
                 create_permissions();
                 return get_permissions()
-            }
-            else {
-                todo!()
+            } else {
+                todo!();
             }
         }
     }
