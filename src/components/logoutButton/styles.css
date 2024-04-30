@@ -1,0 +1,10 @@
+.logoutbutton {
+    background-color: grey;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    height: 50px;
+    width: 50px;
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import './styles.css'
 import { invoke } from "@tauri-apps/api/tauri"
 import CicularLoading from "../circularLoading/circularLoading"
+import LogoutButton from '../logoutButton/logoutButton';
 
 interface ModalProps {
   show: boolean;
@@ -163,6 +164,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
               )}
           </div>
         </div>
+        <LogoutButton></LogoutButton>
       </div>
     </div>
   );

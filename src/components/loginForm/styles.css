@@ -1,0 +1,34 @@
+.signinwrapper {
+    display: flex;
+    flex-direction: column;
+    height: 150vh;
+    width: 100vh;
+    background-color: whitesmoke;
+    justify-content: center;
+    margin: auto;
+    margin-top: 20vh;
+    border-radius: 5px;
+}
+
+.signupformbutton {
+    display: flex;
+    background-color: grey;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    height: 50px;
+    width: 100px;
+}
+
+.signintextwrapper {
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+}
+
+.signinbuttonwrapper {
+    display: flex;
+    flex-direction: row;
+}
