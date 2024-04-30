@@ -8,6 +8,7 @@ import MicIcon from "./assets/MicIcon.svg"
 import SendIcon from "./assets/SendIcon.svg"
 import LoginForm from "./components/loginForm/loginForm";
 import { useAuth0 } from "@auth0/auth0-react";
+import CircularLoading from "./components/circularLoading/circularLoading";
 
 type Payload = {
   message: string;
@@ -131,7 +132,11 @@ function App() {
   }
 
   if (isLoading) {
-    <p>Loading Magnus...</p>
+    return (
+      <div className="container">
+        <CircularLoading size="large" />
+      </div>
+    )
   }
 
   if (error) {

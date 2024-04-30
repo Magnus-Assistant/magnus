@@ -3,10 +3,7 @@ import "./styles.css"
 
 const LoginForm: React.FC = () => {
 
-    const { loginWithRedirect, isAuthenticated, user } = useAuth0();
-
-    console.log(user?.sub)
-    console.log("Are we Authenticated: " + isAuthenticated)
+    const { loginWithRedirect } = useAuth0();
 
     return (
         <div className="signinwrapper">

@@ -165,10 +165,13 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
                 </div>
               </div>
             ) : (
-              <CicularLoading />
+              <CicularLoading size='small' />
             )}
           </div>
         </div>
+        <hr />
+        Account
+        <hr />
         <div className='accountwrapper'>
           <UserIcon></UserIcon>
           <LogoutButton></LogoutButton>
