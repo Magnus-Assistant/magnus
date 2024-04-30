@@ -104,8 +104,8 @@ function App() {
         // listen for when magnus takes an action
         await listen<Payload>("action", (response) => {
           if (typeof (response.payload.message) === "string") {
-            const actionMessage: Message = {type: 'magnus', text: response.payload.message }
-            setMessages((prevMessages) => [...prevMessages, actionMessage])  
+            const actionMessage: Message = { type: 'magnus', text: response.payload.message }
+            setMessages((prevMessages) => [...prevMessages, actionMessage])
           }
         })
       }
@@ -114,7 +114,7 @@ function App() {
   }, [])
 
   const scrollToBottom = () => {
-    window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }
 
   // scroll to bottom on new messages
@@ -122,32 +122,44 @@ function App() {
     scrollToBottom()
   }, [messages])
 
-  const { loginWithRedirect, logout, isLoading, isAuthenticated } = useAuth0();
+  const { isLoading, isAuthenticated, error } = useAuth0();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isLoading) {
     return (
-    <LoginForm shouldShow={true}></LoginForm>
+      <LoginForm></LoginForm>
     )
-  } else {
-  return (
-    <div className="container">
-      <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
-      <form ref={formRef} onSubmit={handleFormSubmit} className="bottomBar">
-        <button id="settingsButton" type="button" onClick={() => {setShowSettings(true)}}>
-          <img src={SettingsIcon} />
-        </button>
-        <button id="micButton" type="button" onClick={handlMicClick}>
-          <img src={MicIcon} />
-        </button>
-        <textarea value={text} onChange={event => {setText(event.target.value)}} onKeyDown={handleKeyDown}/>
-        <button type="submit" id="submitButton">
-          <img src={SendIcon} />
-        </button>
-      </form>
-      <SettingsModal show={showSettings} onClose={() => {setShowSettings(false)}} />
-    </div>
-  )
-}
+  }
+
+  if (isLoading) {
+    <p>Loading Magnus...</p>
+  }
+
+  if (error) {
+    return (
+      <p>There was an error logging you in :(</p>
+    )
+  }
+
+  if (isAuthenticated && !error && !isLoading) {
+    return (
+      <div className="container">
+        <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
+        <form ref={formRef} onSubmit={handleFormSubmit} className="bottomBar">
+          <button id="settingsButton" type="button" onClick={() => { setShowSettings(true) }}>
+            <img src={SettingsIcon} />
+          </button>
+          <button id="micButton" type="button" onClick={handlMicClick}>
+            <img src={MicIcon} />
+          </button>
+          <textarea value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
+          <button type="submit" id="submitButton">
+            <img src={SendIcon} />
+          </button>
+        </form>
+        <SettingsModal show={showSettings} onClose={() => { setShowSettings(false) }} />
+      </div>
+    )
+  }
 }
 
 export default App;

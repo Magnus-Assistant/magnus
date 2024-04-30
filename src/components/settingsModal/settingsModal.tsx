@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import './styles.css'
 import { invoke } from "@tauri-apps/api/tauri"
+import LogoutButton from '../logoutButton/logoutButton';
 
 interface ModalProps {
   show: boolean;
@@ -81,6 +82,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
               ))}
           </form>
         </div>
+        <LogoutButton></LogoutButton>
       </div>
     </div>
   );
