@@ -10,12 +10,12 @@
 .usernamewrapper {
     display: flex;
     flex-direction: column;
-    width: 200px;
     line-height: 0.01;
     justify-content: center;
     align-items: center;
     margin: auto;
     margin-bottom: 4px;
+    padding-left: 8px;
 }
 
 .userinfowrapper img {
