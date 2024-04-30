@@ -15,7 +15,7 @@ mod audio_input;
 mod audio_output;
 mod globals;
 mod permissions;
-mod tools; 
+mod tools;
 
 lazy_static! {
     static ref APP_HANDLE: Arc<Mutex<Option<AppHandle>>> = Arc::new(Mutex::new(None));
@@ -40,6 +40,16 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+fn get_auth_client_id() -> String {
+    globals::get_auth_client_id().to_string()
+}
+
+#[tauri::command]
+fn get_auth_domain() -> String {
+    globals::get_auth_domain().to_string()
+}
+
+#[tauri::command]
 fn get_permissions() -> Value {
     permissions::get_permissions()
 }
@@ -52,8 +62,11 @@ async fn update_permissions(permissions: Value) {
 
 #[tauri::command]
 async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) {
-
-    let should_tts = permissions::get_permissions().get("Tts").unwrap().as_bool().unwrap();
+    let should_tts = permissions::get_permissions()
+        .get("Tts")
+        .unwrap()
+        .as_bool()
+        .unwrap();
     println!("TTS enabled?: {}", should_tts);
 
     // if we have no user message, attempt to get speech input
@@ -84,7 +97,10 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
 
             // exclude code snippets from tts
             let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
-            let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
+            let text_to_speak = code_snippets_regex
+                .split(&assistant_message)
+                .collect::<Vec<_>>()
+                .join("\n");
 
             if should_tts && text_to_speak.trim() != "" {
                 thread::spawn(move || {
@@ -106,8 +122,7 @@ fn main() {
     if cfg!(debug_assertions) {
         dotenv::dotenv().ok();
         println!("dev!!!!");
-    }
-    else {
+    } else {
         #[cfg(target_os = "windows")]
         let env = include_str!("..\\.env");
 
@@ -119,16 +134,16 @@ fn main() {
             if line.trim().is_empty() || line.starts_with('#') {
                 continue;
             }
-    
+
             if let Some((key, value)) = line.split_once('=') {
                 // trim potential whitespace
                 let key = key.trim();
                 let value = value.trim();
-    
+
                 // set environment variable
                 std::env::set_var(key, value);
             }
-        }    
+        }
         println!("prod!!!!");
     }
 
@@ -172,7 +187,13 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_conversation_flow, get_permissions, update_permissions])
+        .invoke_handler(tauri::generate_handler![
+            run_conversation_flow,
+            get_permissions,
+            update_permissions,
+            get_auth_client_id,
+            get_auth_domain
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

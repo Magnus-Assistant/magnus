@@ -6,6 +6,8 @@ import SettingsModal from "./components/settingsModal/settingsModal";
 import SettingsIcon from "./assets/SettingsIcon.svg"
 import MicIcon from "./assets/MicIcon.svg"
 import SendIcon from "./assets/SendIcon.svg"
+import LoginForm from "./components/loginForm/loginForm";
+import { useAuth0 } from "@auth0/auth0-react";
 
 type Payload = {
   message: string;
@@ -120,6 +122,13 @@ function App() {
     scrollToBottom()
   }, [messages])
 
+  const { loginWithRedirect, logout, isLoading, isAuthenticated } = useAuth0();
+
+  if (!isAuthenticated) {
+    return (
+    <LoginForm shouldShow={true}></LoginForm>
+    )
+  } else {
   return (
     <div className="container">
       <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
@@ -138,6 +147,7 @@ function App() {
       <SettingsModal show={showSettings} onClose={() => {setShowSettings(false)}} />
     </div>
   )
+}
 }
 
 export default App;
