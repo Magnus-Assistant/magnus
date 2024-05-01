@@ -39,7 +39,6 @@ function App() {
       event.preventDefault()
       if (text) {
         setTimeout(scrollToBottom, 30);
-        setLoading(true)
         //dont use the microphone   
         runConversationFlow(false);
         setText('');
@@ -82,10 +81,17 @@ function App() {
       const startListeners = async () => {
         await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
-            
+            //disallow all input while magnus responds
             let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
             textBox ? textBox.disabled = true : null
+            let micButton = document.getElementById("micButton") as HTMLButtonElement
+            micButton ? micButton.disabled = true : null
+            micButton.style.cursor = 'default';
+            let submitButton = document.getElementById("submitButton") as HTMLButtonElement
+            submitButton ? submitButton.disabled = true : null
+            submitButton.style.cursor = 'default';
 
+            setLoading(true)
             const newMessage: Message = { type: 'user', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
@@ -99,12 +105,18 @@ function App() {
         });
 
         await listen<Payload>("magnus", (response) => {
-          if (typeof (response.payload.message) === 'string') {
-            setLoading(false)
-            
+          if (typeof (response.payload.message) === 'string') {            
+            // allow user input after magnus has responded
             let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
             textBox ? textBox.disabled = false : null
-
+            let micButton = document.getElementById("micButton") as HTMLButtonElement
+            micButton ? micButton.disabled = false : null
+            micButton.style.cursor = 'pointer';
+            let submitButton = document.getElementById("submitButton") as HTMLButtonElement
+            submitButton ? submitButton.disabled = false : null
+            submitButton.style.cursor = 'pointer';
+            
+            setLoading(false)
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
