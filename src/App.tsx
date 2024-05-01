@@ -84,10 +84,7 @@ function App() {
           if (typeof (response.payload.message) === 'string') {
             
             let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
-            if (textBox) {
-              console.log("disabled")
-              textBox.disabled = true
-            }
+            textBox ? textBox.disabled = true : null
 
             const newMessage: Message = { type: 'user', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
@@ -106,9 +103,7 @@ function App() {
             setLoading(false)
             
             let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
-            if (textBox) {
-              textBox.disabled = false
-            }
+            textBox ? textBox.disabled = false : null
 
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
