@@ -82,6 +82,13 @@ function App() {
       const startListeners = async () => {
         await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
+            
+            let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
+            if (textBox) {
+              console.log("disabled")
+              textBox.disabled = true
+            }
+
             const newMessage: Message = { type: 'user', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
@@ -97,6 +104,12 @@ function App() {
         await listen<Payload>("magnus", (response) => {
           if (typeof (response.payload.message) === 'string') {
             setLoading(false)
+            
+            let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
+            if (textBox) {
+              textBox.disabled = false
+            }
+
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
@@ -156,7 +169,7 @@ function App() {
           <button id="micButton" type="button" onClick={handlMicClick}>
             <img src={MicIcon} />
           </button>
-          <textarea value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
+          <textarea id="magnus-textbox" value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
           <button type="submit" id="submitButton">
             <img src={SendIcon} />
           </button>
