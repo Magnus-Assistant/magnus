@@ -9,7 +9,7 @@ const UserIcon: React.FC = () => {
         <div className="userinfowrapper">
             <img src={user?.picture}></img>
             <div className="usernamewrapper">
-                <p className="useremailtext">{user?.email}</p>
+                <p className="useremailtext">{user?.given_name ? user?.given_name : user?.nickname}</p>
             </div>
         </div>
     )

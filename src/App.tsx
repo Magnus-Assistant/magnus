@@ -8,6 +8,7 @@ import MicIcon from "./assets/MicIcon.svg"
 import SendIcon from "./assets/SendIcon.svg"
 import LoginForm from "./components/loginForm/loginForm";
 import { useAuth0 } from "@auth0/auth0-react";
+import CircularLoading from "./components/circularLoading/circularLoading";
 
 type Payload = {
   message: string;
@@ -81,6 +82,10 @@ function App() {
       const startListeners = async () => {
         await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
+            
+            let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
+            textBox ? textBox.disabled = true : null
+
             const newMessage: Message = { type: 'user', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
@@ -96,6 +101,10 @@ function App() {
         await listen<Payload>("magnus", (response) => {
           if (typeof (response.payload.message) === 'string') {
             setLoading(false)
+            
+            let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
+            textBox ? textBox.disabled = false : null
+
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
@@ -131,7 +140,11 @@ function App() {
   }
 
   if (isLoading) {
-    <p>Loading Magnus...</p>
+    return (
+      <div className="container">
+        <CircularLoading size="large" />
+      </div>
+    )
   }
 
   if (error) {
@@ -151,7 +164,7 @@ function App() {
           <button id="micButton" type="button" onClick={handlMicClick}>
             <img src={MicIcon} />
           </button>
-          <textarea value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
+          <textarea id="magnus-textbox" value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
           <button type="submit" id="submitButton">
             <img src={SendIcon} />
           </button>

@@ -6,9 +6,9 @@ use std::time::Duration;
 use std::sync::{Arc, Mutex};
 use vosk::{DecodingState, Recognizer};
 use std::time::Instant;
-use crate::globals::get_vosk_model;
+use crate::{audio_input_device_selection, globals::get_vosk_model, settings};
 
-pub fn get_audio_input_device() -> Device {
+pub fn get_default_audio_input_device() -> Device {
     let host = cpal::default_host();
 
     let audio_input_device: Device = loop {
@@ -21,6 +21,34 @@ pub fn get_audio_input_device() -> Device {
     println!("Found input device! -> {:?}", audio_input_device.name().unwrap());
 
     audio_input_device
+}
+
+pub fn get_current_audio_input_device() -> Device {
+    let settings = settings::get_settings().as_object().unwrap().clone();
+    let current_selection = settings.get("audioInputDeviceSelection").unwrap().as_str().unwrap().to_string();
+    let available_devices = get_audio_input_device_list();
+
+    for device in available_devices {
+        if device.name().unwrap() == current_selection {
+            return device
+        }
+    }
+
+    // if selected device is not available, go with the default
+    let default_device = get_default_audio_input_device();
+
+    // set selection to default device
+    audio_input_device_selection(default_device.name().unwrap());
+
+    default_device
+}
+
+pub fn get_audio_input_device_list() -> Vec<Device> {
+    let host = cpal::default_host();
+
+    let input_devices = host.input_devices().unwrap().collect::<Vec<_>>();
+    
+    input_devices
 }
 
 pub fn run_transcription(audio_input_receiver: Receiver<Vec<i16>>, sample_rate: SampleRate) -> Option<String> {
@@ -135,7 +163,7 @@ pub fn run() -> Option<String> {
     let transcribing: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
     // find an input device
-    let audio_input_device = get_audio_input_device();
+    let audio_input_device = get_current_audio_input_device();
     let audio_input_config = audio_input_device.default_input_config().unwrap();
 
     // spawn the transcription thread
