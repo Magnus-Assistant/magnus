@@ -176,10 +176,6 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
           <UserIcon></UserIcon>
           <LogoutButton></LogoutButton>
         </div>
-        <div className='accountwrapper'>
-        <UserIcon></UserIcon>
-        <LogoutButton></LogoutButton>
-        </div>
       </div>
     </div>
   );
