@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cpal::traits::DeviceTrait;
 use dotenv;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -37,6 +38,11 @@ async fn create_message_thread() -> String {
         }
         Err(_) => panic!("Error creating the message thread!"),
     }
+}
+
+#[tauri::command]
+fn set_is_signed_in(is_signed_in: bool) {
+    globals::set_is_signed_in(is_signed_in)
 }
 
 #[tauri::command]
@@ -142,7 +148,6 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
     }
 }
 
-use cpal::traits::DeviceTrait;
 fn main() {
     // load env
     if cfg!(debug_assertions) {

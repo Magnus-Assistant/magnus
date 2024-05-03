@@ -37,6 +37,7 @@
     height: 34px;
     width: 34px;
     background: none;
+    color: lightgrey;
 }
 
 .modal-body {
@@ -90,6 +91,7 @@
     background-color: white;
     -webkit-transition: .4s;
     transition: .4s;
+    outline: 1px solid white;
 }
 
 input:checked+.slider {
@@ -130,62 +132,56 @@ input:checked+.slider:before {
     position: absolute;
 }
 
-@media (prefers-color-scheme: dark) {
-    .large-modal {
-        background-color: #676767;
-    }
+/* Style for the container */
+.device-list>div {
+    padding: 6px;
+    width: max-content;
+    margin-right: auto;
+}
 
-    /* Style for the container */
-    .device-list>div {
-        padding: 6px;
-        width: max-content;
-        margin-right: auto;
-    }
+/* Custom radio button style */
+.device-list label {
+    position: relative;
+    padding-left: 30px;
+    cursor: pointer;
+    display: inline-block;
+    line-height: 20px;
+}
 
-    /* Custom radio button style */
-    .device-list label {
-        position: relative;
-        padding-left: 30px;
-        cursor: pointer;
-        display: inline-block;
-        line-height: 20px;
-    }
+/* Custom checkmark/indicator */
+.device-list label:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
 
-    /* Custom checkmark/indicator */
-    .device-list label:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 20px;
-        width: 20px;
-        background-color: #ccc;
-        border-radius: 50%;
-        transition: background 0.3s;
-    }
+/* When the radio button is checked, change background */
+.device-list input[type="radio"]:checked+label:before {
+    background-color: #2196F3;
+}
 
-    /* When the radio button is checked, change background */
-    .device-list input[type="radio"]:checked+label:before {
-        background-color: #2196F3;
-    }
+/* Style for the checkmark indicator (inside the circle) */
+.device-list label:after {
+    content: "";
+    position: absolute;
+    display: none;
+    top: 6px;
+    left: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+}
 
-    /* Style for the checkmark indicator (inside the circle) */
-    .device-list label:after {
-        content: "";
-        position: absolute;
-        display: none;
-        top: 6px;
-        left: 6px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: white;
-    }
-
-    /* Show the indicator inside the button when checked */
-    .device-list input[type="radio"]:checked+label:after {
-        display: block;
-    }
+/* Show the indicator inside the button when checked */
+.device-list input[type="radio"]:checked+label:after {
+    display: block;
 }
 
 .accountwrapper {
@@ -200,7 +196,6 @@ input:checked+.slider:before {
     }
 
     .modal-header {
-        border-bottom: 1px solid gainsboro;
         color: #2f2f2f;
     }
 
@@ -212,15 +207,15 @@ input:checked+.slider:before {
     .modal-header button:hover { 
         background-color: gainsboro;
     }
+
+    .slider {
+        box-shadow: 0 1px 4px rgb(57, 57, 57);
+    }
 }
 
 @media (prefers-color-scheme: dark) {
     .large-modal {
-        background-color: #676767;
-    }
-
-    .modal-header {
-        border-bottom: 1px solid #eee;
+        background-color: #484848;
     }
 
     .modal-header button {
@@ -230,8 +225,4 @@ input:checked+.slider:before {
     .modal-header button:hover { 
         background-color: #3f3f3f;
     }
-}
-
-.accountwrapper {
-    display: flex;
 }

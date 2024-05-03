@@ -8,15 +8,32 @@ const LoginForm: React.FC = () => {
         <div className="signinwrapper">
             <div className="signintextwrapper">
                 <h3 className="signinheader">Welcome to Magnus!</h3>
-                <p className="signintext">If you want to use the full product please select "<b>Sign In</b>" and create an account using auth0.</p>
-                <p className="signintext">If you don't want to create an account right now you can use the demo version by selecting "<b>Use Demo</b>"</p>
+                <div className="columncontainer">
+                    <div className="column">
+                        <u><h3>Featured</h3></u>
+                        <ul>
+                            <li>Free access to GPT-4</li>
+                            <li>Text-to-Speech responses</li>
+                            <li>Last 2 message exchanges included in context</li>
+                            <li>Access to newer features coming soon...</li>
+                        </ul>
+                    </div>
+                    <div className="column">
+                        <u><h3>Preview</h3></u>
+                        <ul>
+                            <li>Free access to GPT-4</li>
+                            <li>Text-to-Speech responses</li>
+                            <li>No previous messages included in context</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div className="signinbuttonwrapper">
-                <button className="signupformbutton" style={{ backgroundColor: "#157DEC" }} onClick={() => loginWithRedirect()}>
+                <button className="signupbutton" onClick={() => loginWithRedirect()}>
                     Sign In
                 </button>
-                <button className="signupformbutton">
-                    Use Demo
+                <button className="previewbutton">
+                    Try Preview
                 </button>
             </div>
         </div>

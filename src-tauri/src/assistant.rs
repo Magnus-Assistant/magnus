@@ -1,4 +1,4 @@
-use crate::globals::{get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
+use crate::globals::{self, get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
 use crate::tools::*;
 use reqwest::Error;
 use std::time::Duration;
@@ -63,8 +63,13 @@ pub async fn create_message(user_message: serde_json::Value, thread_id: String) 
 }
 
 pub async fn create_run(thread_id: String) -> Result<String, Error> {
+    let n_messages_in_context = if globals::get_is_signed_in() { 2 } else { 0 };
     let data = serde_json::json!({
-        "assistant_id": get_magnus_id()
+        "assistant_id": get_magnus_id(),
+        "truncation_strategy": {
+            "type": "last_messages",
+            "last_messages": n_messages_in_context
+        }
     });
 
     let response = get_reqwest_client()
