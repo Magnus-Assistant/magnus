@@ -23,6 +23,21 @@ function App() {
   const [showPreview, setShowPreview] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
+  const { isLoading, isAuthenticated, error } = useAuth0();
+
+  // set the auth status on the backend
+  // can return false for isAuthenticated at first so its safer to run this each time it changes
+  // also if something were to happen where they are no longer auth'd the backend would be informed as well
+  useEffect(() => {
+    if (isAuthenticated) {
+      invoke("set_is_signed_in", { isSignedIn: true })
+      console.log("We are using the authenticated mode")
+    } else {
+      invoke("set_is_signed_in", { isSignedIn: false })
+      console.log("We are using the unauthenticated preview")
+    }
+  }, [isAuthenticated])
+
   const handleFormSubmit = (event: FormEvent) => {
     event.preventDefault()
     //create a new message and set the message in local state
@@ -145,8 +160,6 @@ function App() {
     scrollToBottom()
   }, [messages])
 
-  const { isLoading, isAuthenticated, error } = useAuth0();
-
   if (!isAuthenticated && !isLoading && !showPreview) {
     return (
       <LoginForm onPreviewClick={() => setShowPreview(true)}></LoginForm>
@@ -168,15 +181,6 @@ function App() {
   }
 
   if (!error && !isLoading) {
-
-    // tell the backend about our authentication status
-    if (isAuthenticated) {
-      invoke("set_is_signed_in", {isSignedIn: true})
-      console.log("We are using the authenticated mode")
-    } else {
-      invoke("set_is_signed_in", {isSignedIn: false})
-      console.log("We are using the unauthenticated preview")
-    }
     return (
       <div className="container">
         <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
