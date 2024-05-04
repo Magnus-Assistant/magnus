@@ -1,10 +1,21 @@
 .logoutbutton {
     background-color: rgb(170, 170, 170);
-    justify-content: center;
+    justify-content: space-around;
     align-items: center;
     margin: auto;
     margin-bottom: 4px;
     border-radius: 5px;
     height: 40px;
     width: 100px;
+}
+
+.signinbutton {
+    background-color: rgb(170, 170, 170);
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    margin-bottom: 4px;
+    border-radius: 5px;
+    height: 40px;
+    width: 100px; 
 }

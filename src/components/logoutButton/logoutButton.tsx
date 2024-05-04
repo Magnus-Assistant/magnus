@@ -4,12 +4,21 @@ import "./styles.css"
 // I figured we could have this in the settings or something?
 const LogoutButton: React.FC = () => {
 
-    const { logout } = useAuth0();
+    const { logout, user } = useAuth0();
 
+    // render based on if we have a user or not
     return (
-        <button className="logoutbutton" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
-            Sign Out
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {user ? (
+                <button className="logoutbutton" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+                    Sign Out
+                </button>
+            ) : (
+                <button className="signinbutton" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+                    Sign In
+                </button>
+            )}
+        </div>
     )
 }
 

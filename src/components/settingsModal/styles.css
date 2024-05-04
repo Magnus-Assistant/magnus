@@ -185,6 +185,8 @@ input:checked+.slider:before {
 
 .accountwrapper {
     display: flex;
+    justify-content: center;
+    align-items: center;
     padding-top: 5px;
 }
 
@@ -203,7 +205,7 @@ input:checked+.slider:before {
         color: #2f2f2f;
     }
 
-    .modal-header button:hover { 
+    .modal-header button:hover {
         background-color: gainsboro;
     }
 
@@ -221,7 +223,7 @@ input:checked+.slider:before {
         border: 1px solid white;
     }
 
-    .modal-header button:hover { 
+    .modal-header button:hover {
         background-color: #3f3f3f;
     }
 }

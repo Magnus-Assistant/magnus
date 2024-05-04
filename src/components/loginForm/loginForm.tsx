@@ -1,7 +1,11 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import "./styles.css"
 
-const LoginForm: React.FC = () => {
+interface Props {
+    onPreviewClick: () => void
+}
+
+const LoginForm: React.FC<Props> = ({ onPreviewClick }) => {
     const { loginWithRedirect } = useAuth0();
 
     return (
@@ -32,7 +36,7 @@ const LoginForm: React.FC = () => {
                 <button className="signupbutton" onClick={() => loginWithRedirect()}>
                     Sign In
                 </button>
-                <button className="previewbutton">
+                <button className="previewbutton" onClick={onPreviewClick}>
                     Try Preview
                 </button>
             </div>

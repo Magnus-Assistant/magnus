@@ -227,7 +227,8 @@ fn main() {
             audio_input_device_selection,
             audio_output_device_selection,
             get_auth_client_id,
-            get_auth_domain
+            get_auth_domain,
+            set_is_signed_in
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

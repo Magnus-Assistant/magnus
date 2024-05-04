@@ -20,6 +20,7 @@ function App() {
   const [shouldMic, setShouldMic] = useState(true);
   const [loading, setLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showPreview, setShowPreview] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const handleFormSubmit = (event: FormEvent) => {
@@ -46,7 +47,7 @@ function App() {
     }
   };
 
-  const handlMicClick = () => {
+  const handleMicClick = () => {
     const button = document.getElementById('micButton');
     if (button) {
       if (shouldMic) {
@@ -73,6 +74,19 @@ function App() {
     }
   }
 
+  function canUseInput(canToggle: boolean) {
+    let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
+    textBox ? textBox.disabled = !canToggle : null
+
+    let micButton = document.getElementById("micButton") as HTMLButtonElement
+    micButton ? micButton.disabled = !canToggle : null
+    micButton.style.cursor = 'default';
+
+    let submitButton = document.getElementById("submitButton") as HTMLButtonElement
+    submitButton ? submitButton.disabled = !canToggle : null
+    submitButton.style.cursor = 'default';
+  }
+
   const hasBeenCalledRef = useRef(false);
   useEffect(() => {
     if (!hasBeenCalledRef.current) {
@@ -81,15 +95,9 @@ function App() {
       const startListeners = async () => {
         await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
+
             //disallow all input while magnus responds
-            let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
-            textBox ? textBox.disabled = true : null
-            let micButton = document.getElementById("micButton") as HTMLButtonElement
-            micButton ? micButton.disabled = true : null
-            micButton.style.cursor = 'default';
-            let submitButton = document.getElementById("submitButton") as HTMLButtonElement
-            submitButton ? submitButton.disabled = true : null
-            submitButton.style.cursor = 'default';
+            canUseInput(false);
 
             setLoading(true)
             const newMessage: Message = { type: 'user', text: response.payload.message }
@@ -105,17 +113,11 @@ function App() {
         });
 
         await listen<Payload>("magnus", (response) => {
-          if (typeof (response.payload.message) === 'string') {            
+          if (typeof (response.payload.message) === 'string') {
+
             // allow user input after magnus has responded
-            let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
-            textBox ? textBox.disabled = false : null
-            let micButton = document.getElementById("micButton") as HTMLButtonElement
-            micButton ? micButton.disabled = false : null
-            micButton.style.cursor = 'pointer';
-            let submitButton = document.getElementById("submitButton") as HTMLButtonElement
-            submitButton ? submitButton.disabled = false : null
-            submitButton.style.cursor = 'pointer';
-            
+            canUseInput(true);
+
             setLoading(false)
             const newMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, newMessage])
@@ -145,9 +147,9 @@ function App() {
 
   const { isLoading, isAuthenticated, error } = useAuth0();
 
-  if (!isAuthenticated && !isLoading) {
+  if (!isAuthenticated && !isLoading && !showPreview) {
     return (
-      <LoginForm></LoginForm>
+      <LoginForm onPreviewClick={() => setShowPreview(true)}></LoginForm>
     )
   }
 
@@ -165,7 +167,16 @@ function App() {
     )
   }
 
-  if (isAuthenticated && !error && !isLoading) {
+  if (!error && !isLoading) {
+
+    // tell the backend about our authentication status
+    if (isAuthenticated) {
+      invoke("set_is_signed_in", {isSignedIn: true})
+      console.log("We are using the authenticated mode")
+    } else {
+      invoke("set_is_signed_in", {isSignedIn: false})
+      console.log("We are using the unauthenticated preview")
+    }
     return (
       <div className="container">
         <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
@@ -173,7 +184,7 @@ function App() {
           <button id="settingsButton" type="button" onClick={() => { setShowSettings(true) }}>
             <img src={SettingsIcon} />
           </button>
-          <button id="micButton" type="button" onClick={handlMicClick}>
+          <button id="micButton" type="button" onClick={handleMicClick}>
             <img src={MicIcon} />
           </button>
           <textarea id="magnus-textbox" value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />

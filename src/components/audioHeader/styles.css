@@ -1,0 +1,33 @@
+.audioWrapper {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.flex-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.audioTitle {
+    margin-top: 0%;
+    margin-bottom: 0%;
+}
+
+.refreshButton {
+    position: absolute;
+    display: flex;
+    right: 0;
+    justify-content: center;
+    align-items: center;
+    height: 32px;
+    width: 32px;
+    border-radius: 5px;
+}
+
+.refreshImage {
+    width: 32px;
+    height: 32px;
+}
