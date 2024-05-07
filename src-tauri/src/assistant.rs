@@ -37,7 +37,7 @@ pub async fn create_message_thread() -> Result<String, Error> {
         .post("https://api.openai.com/v1/threads")
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
+        .header("OpenAI-Beta", "assistants=v2")
         .send()
         .await?;
 
@@ -54,7 +54,7 @@ pub async fn create_message(user_message: serde_json::Value, thread_id: String) 
         ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
+        .header("OpenAI-Beta", "assistants=v2")
         .json(&user_message)
         .send()
         .await?;
@@ -82,7 +82,7 @@ pub async fn create_run(thread_id: String) -> Result<String, Error> {
         ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
+        .header("OpenAI-Beta", "assistants=v2")
         .json(&data)
         .send()
         .await?;
@@ -100,7 +100,7 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                 thread_id, run_id
             ))
             .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-            .header("OpenAI-Beta", "assistants=v1")
+            .header("OpenAI-Beta", "assistants=v2")
             .send()
             .await?;
 
@@ -175,7 +175,7 @@ pub async fn submit_tool_outputs(
         ))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
+        .header("OpenAI-Beta", "assistants=v2")
         .json(&tool_outputs)
         .send()
         .await;
@@ -190,7 +190,7 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
             thread_id
         ))
         .header("Authorization", format!("Bearer {}", get_open_ai_key()))
-        .header("OpenAI-Beta", "assistants=v1")
+        .header("OpenAI-Beta", "assistants=v2")
         .send()
         .await?;
 
