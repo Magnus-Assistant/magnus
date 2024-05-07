@@ -8,26 +8,37 @@ interface Props {
 }
 
 const ChatBubble: React.FC<Props> = ({ text, chat_style }) => {
-    let codeChunks = text.match(/```[^```]+```/g) || []
-
-    let textChunks = text.split(/```[^```]+```/)
-    textChunks = textChunks.filter(chunk => chunk.trim() !== '');
+    // split text into a list of strings of the text chunks and code snippets
+    let chunks = text.split(/(?=\n`{3}.)|(?<=`{3})\n/).map(chunk => chunk.trim()) 
+    // needs adjusting for the special case for when response is markdown numbered list of languages followed by code snippet
+    // 1. **JavaScript**\n\n```javascript\n    console.log("hello world")\n``` etc...
 
     return (
         <span>
-            {textChunks.map((text, _) => {
-                // Check if codeChunks has at least one element before shifting
-                const codeChunk = codeChunks.length > 0 ? codeChunks.shift() : null;
-                return (
-                    <>
+            {chunks.map(chunk => {
+                if (chat_style === "magnusChatBubble") {
+                    if (chunk.startsWith("```") && chunk.endsWith("```")) {
+                        return (
+                            <CodeBubble codeChunk={chunk} />
+                        )
+                    }
+                    else {
+                        return (
+                            <div className={chat_style}>
+                                <Markdown className={"markdown"}>
+                                    {chunk}
+                                </Markdown>
+                            </div>
+                        )
+                    }
+                }
+                else {
+                    return (
                         <div className={chat_style}>
-                            <Markdown className={"markdown"}>
-                                {text.trim()}
-                            </Markdown>
+                            {chunk}
                         </div>
-                        {codeChunk && <CodeBubble codeChunk={codeChunk} />}
-                    </>
-                );
+                    );
+                }
             })}
         </span>
     )

@@ -13,7 +13,6 @@
 .codeBubbleHeader {
     display: flex;
     justify-content: space-between;
-    background-color:#111111;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     height: 40px;
@@ -23,7 +22,6 @@
     margin: 15px;
     margin-bottom: 10px;
     margin-top: 10px;
-    color: lightgrey;
 }
 
 .copyButtonGroup {
@@ -43,5 +41,57 @@
     padding: 1px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
-    background-color: #2d2d2d;
+}
+
+.codeBlock pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.codeBlock pre::-webkit-scrollbar-track {
+    border-radius: 8px;
+    background-color: none;
+    cursor: pointer;
+}
+
+.codeBlock pre::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+@media (prefers-color-scheme: light) {
+    .codeBubbleHeader {
+        background-color:gainsboro;
+    }
+
+    .codeLanguage {
+        color: black;
+    }
+
+    .codeBlock {
+        background-color: white;
+        border: 1px solid gainsboro;
+    }
+
+    .codeBlock pre::-webkit-scrollbar-thumb {
+        background-color: gainsboro;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .codeBubbleHeader {
+        background-color:#111111;
+    }
+
+    .codeLanguage {
+        color: lightgrey;
+    }
+
+    .codeBlock {
+        background-color: #3f3f3f;
+    }
+
+    .codeBlock pre::-webkit-scrollbar-thumb {
+        background-color: rgb(170, 170, 170);
+    }
 }

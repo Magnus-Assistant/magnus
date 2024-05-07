@@ -6,7 +6,6 @@
     border-radius: 10px;
     width: fit-content;
     padding: 12px;
-    background-color: #3834F0;
 }
   
 .loading-indicator span {
@@ -14,7 +13,6 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background-color: white;
     margin: 0 5px;
     animation: blink 2s infinite both;
 }
@@ -41,4 +39,27 @@
     60% {
       transform: scale(1);
     }
+}
+
+@media (prefers-color-scheme: light) {
+  .loading-indicator {
+    background-color: gainsboro;
+  }
+
+  .loading-indicator span {
+    background-color: #2f2f2f;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .loading-indicator {
+    /* toggle these and see what you like best */
+    background-color: #111111;
+    /* background-color: #212121; */
+    /* background-color: #3c3c3c;     */
+  }
+
+  .loading-indicator span {
+    background-color: lightgrey;
+  }
 }
