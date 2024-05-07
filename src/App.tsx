@@ -63,20 +63,25 @@ function App() {
     }
   };
 
-  const handleMicClick = () => {
+  const handleMicClick = async () => {
     const button = document.getElementById('micButton');
     if (button) {
-      if (shouldMic) {
-        setShouldMic(false)
-        button.style.filter = "invert(100%)"
-        //use the microphone
-        runConversationFlow(true);
-        console.log("Collecting Audio")
-      } else {
-        setShouldMic(true)
-        button.style.filter = "invert(0%)"
-        console.log("Audio Collecting Turned Off")
-      }
+      await invoke('get_permissions').then((permissions: any) => {
+        if (permissions['Microphone']) {
+          if (shouldMic) {
+            setShouldMic(false)
+            button.style.filter = "invert(100%)"
+            //use the microphone
+            runConversationFlow(true);
+            console.log("Collecting Audio")
+          } 
+          else {
+            setShouldMic(true)
+            button.style.filter = "invert(0%)"
+            console.log("Audio Collecting Turned Off")
+          }
+        }
+      })
     }
   }
 
@@ -116,7 +121,7 @@ function App() {
         await listen<Payload>("user", (response) => {
           if (typeof (response.payload.message) === 'string') {
 
-            //disallow all input while magnus responds
+            // disallow all input while magnus responds
             canUseInput(false);
 
             setLoading(true)
@@ -124,7 +129,7 @@ function App() {
             setMessages((prevMessages) => [...prevMessages, newMessage])
           }
 
-          //reset the state of the mic button if we get a transcription from the user back
+          // reset the state of the mic button if we get a transcription from the user back
           setShouldMic(true)
           const button = document.getElementById('micButton');
           if (button) {
