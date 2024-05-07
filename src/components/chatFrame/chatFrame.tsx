@@ -27,7 +27,7 @@ const ChatFrame: React.FC<ChatFrameProps> = ({ initialMessages, loading, isSigne
     let numExchanges = (count + 1) / 2
 
     // define the context line considering then number of exchanges, and if magnus has responded or not
-    let contextLine = null
+    let contextLine = 0
     let numUserMessages = 0
     for (let i = initialMessages.length - 1; i >= 0; i--) {
         if (initialMessages[i].type == 'user') {
