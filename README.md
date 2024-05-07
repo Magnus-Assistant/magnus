@@ -15,6 +15,12 @@ Leveraging the industry leading AI model from Open AI, [GPT-4](https://openai.co
 
 ---
 
+# Preview
+
+The Magnus app offers options to either create an account with us, to sign-in with your Google account, or to preview the app with no sign-in. Currently, the advantage to signing in is that Magnus will have context of the most recent messages in the conversation when responding to each new message, but more advantages are soon to come. The preview is a great option for an initial exploration the app. All options are free and up to you entirely.
+
+---
+
 # Safety
 
 Currently, when attempting to download and install Magnus, your browser and/or system may flag it as unsafe. We are aware of this issue, and are moving towards solutions to this in future releases. We encourage you to look at the source code in this repository if you have any concerns.
