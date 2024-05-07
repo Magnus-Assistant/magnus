@@ -22,6 +22,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [showPreview, setShowPreview] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isLoading, isAuthenticated, error } = useAuth0();
 
@@ -92,7 +93,11 @@ function App() {
   function canUseInput(canToggle: boolean) {
     let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
     textBox ? textBox.disabled = !canToggle : null
-
+    // click back into input field for convenience
+    if (textBox && canToggle) {
+      textareaRef.current?.focus()
+    }
+    
     let micButton = document.getElementById("micButton") as HTMLButtonElement
     micButton ? micButton.disabled = !canToggle : null
     micButton.style.cursor = 'default';
@@ -142,7 +147,7 @@ function App() {
         // listen for when magnus takes an action
         await listen<Payload>("action", (response) => {
           if (typeof (response.payload.message) === "string") {
-            const actionMessage: Message = { type: 'magnus', text: response.payload.message }
+            const actionMessage: Message = { type: 'magnus', text: response.payload.message, excludeFromCount: true }
             setMessages((prevMessages) => [...prevMessages, actionMessage])
           }
         })
@@ -183,7 +188,7 @@ function App() {
   if (!error && !isLoading) {
     return (
       <div className="container">
-        <ChatFrame initialMessages={messages} loading={loading}></ChatFrame>
+        <ChatFrame initialMessages={messages} loading={loading} isSignedIn={isAuthenticated}></ChatFrame>
         <form ref={formRef} onSubmit={handleFormSubmit} className="bottomBar">
           <button id="settingsButton" type="button" onClick={() => { setShowSettings(true) }}>
             <img src={SettingsIcon} />
@@ -191,7 +196,7 @@ function App() {
           <button id="micButton" type="button" onClick={handleMicClick}>
             <img src={MicIcon} />
           </button>
-          <textarea id="magnus-textbox" value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
+          <textarea ref={textareaRef} id="magnus-textbox" value={text} onChange={event => { setText(event.target.value) }} onKeyDown={handleKeyDown} />
           <button type="submit" id="submitButton">
             <img src={SendIcon} />
           </button>
