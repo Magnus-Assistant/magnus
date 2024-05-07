@@ -1,10 +1,15 @@
 import React from 'react';
 import './styles.css'
 
-const CircularLoading: React.FC = () => {
+interface Props {
+  size: string
+}
+
+const CircularLoading: React.FC<Props> = (size) => {
+
   return (
     <div className="loader-container">
-      <div className="loader"></div>
+      <div className={size.size + "loader"}></div>
     </div>
   );
 };

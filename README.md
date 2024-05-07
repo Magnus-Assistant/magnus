@@ -1,14 +1,31 @@
 # Magnus
 
-A Rust based Desktop Assistant
+Leveraging the industry leading AI model from Open AI, [GPT-4](https://openai.com/gpt-4), Magnus is a conversational assistant equipped with abilities such as weather forecasting, coding assistance, and more. With speech recognition and text-to-speech, Magnus enables a natural feeling verbal interaction. Magnus is available on both MacOS and Windows.
 
 ---
-# Currently Supported Platforms
 
-Releases can be found here: https://github.com/Magnus-Assistant/magnus/releases
+# Features
+
+* Speech recognition
+* Text-to-Speech
+* Proficient in various programming languages and frameworks
+* Forecast of your current location *(with permission)*
+* Forecast of a named location *(within USA)*
+* Access to clipboard text *(with permission)*
+
+---
+
+# Safety
+
+Currently, when attempting to download and install Magnus, your browser and/or system may flag it as unsafe. We are aware of this issue, and are moving towards solutions to this in future releases. We encourage you to look at the source code in this repository if you have any concerns.
+
+---
+
+# Installation
+
+Releases can be found [here](https://github.com/Magnus-Assistant/magnus/releases).
+
 * **Windows x64**
-    * The MSI installer is recommended for Windows
+    * The .msi installer is recommended for Windows
 * **Apple Silicon**
-    * x64.dmg is recommended for Apple Silicon
- 
-With this being a very early version, Windows and Apple users will have to allow the application to open via their respected system prompts/settings
+    * The .dmg is recommended for Apple Silicon

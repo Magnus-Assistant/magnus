@@ -1,0 +1,52 @@
+.audioWrapper {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.flex-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.audioTitle {
+    margin: 0;
+    padding-left: 30px;
+}
+
+.refreshButton {
+    cursor: pointer;
+    border-radius: 10%;
+    height: 34px;
+    width: 34px;
+    background: none;
+    color: lightgrey;    
+}
+
+.refreshImage {
+    width: 30px;
+    height: 30px;
+}
+
+@media (prefers-color-scheme: light) {
+    .refreshButton {
+        border: 1px solid gainsboro;
+        color: #2f2f2f;
+    }
+
+    .refreshButton:hover {
+        background-color: gainsboro;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .refreshButton {
+        border: 1px solid white;
+    }
+
+    .refreshButton:hover {
+        background-color: #3f3f3f;
+    }
+}

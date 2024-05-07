@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cpal::traits::DeviceTrait;
 use dotenv;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -40,6 +41,21 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+fn set_is_signed_in(is_signed_in: bool) {
+    globals::set_is_signed_in(is_signed_in)
+}
+
+#[tauri::command]
+fn get_auth_client_id() -> String {
+    globals::get_auth_client_id().to_string()
+}
+
+#[tauri::command]
+fn get_auth_domain() -> String {
+    globals::get_auth_domain().to_string()
+}
+
+#[tauri::command]
 fn get_permissions() -> Value {
     settings::get_permissions()
 }
@@ -59,6 +75,7 @@ fn get_audio_input_devices() -> Value {
         "selected": current_device.name().unwrap()
     }).as_object().unwrap().clone())
 }
+
 #[tauri::command]
 fn get_audio_output_devices() -> Value {
     let output_devices = audio_output::get_audio_output_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
@@ -132,14 +149,12 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
     }
 }
 
-use cpal::traits::DeviceTrait;
 fn main() {
     // load env
     if cfg!(debug_assertions) {
         dotenv::dotenv().ok();
         println!("dev!!!!");
-    }
-    else {
+    } else {
         #[cfg(target_os = "windows")]
         let env = include_str!("..\\.env");
 
@@ -151,16 +166,16 @@ fn main() {
             if line.trim().is_empty() || line.starts_with('#') {
                 continue;
             }
-    
+
             if let Some((key, value)) = line.split_once('=') {
                 // trim potential whitespace
                 let key = key.trim();
                 let value = value.trim();
-    
+
                 // set environment variable
                 std::env::set_var(key, value);
             }
-        }    
+        }
         println!("prod!!!!");
     }
 
@@ -211,8 +226,11 @@ fn main() {
             get_audio_input_devices,
             get_audio_output_devices,
             audio_input_device_selection,
-            audio_output_device_selection
-            ])
+            audio_output_device_selection,
+            get_auth_client_id,
+            get_auth_domain,
+            set_is_signed_in
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

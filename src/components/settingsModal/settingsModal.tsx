@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './styles.css'
 import { invoke } from "@tauri-apps/api/tauri"
 import CicularLoading from "../circularLoading/circularLoading"
+import LogoutButton from '../logoutButton/logoutButton';
+import UserIcon from '../userIcon/userIcon';
+import AudioHeader from '../audioHeader/audioHeader';
 
 interface ModalProps {
   show: boolean;
@@ -21,34 +24,39 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
   const [permissions, setPermissions] = useState<Permissions>({})
-  const [audioInputDeviceSelection, setAudioInputDeviceSelection] = useState<AudioDeviceSelection>({devices: [], selected: ""})
-  const [audioOutputDeviceSelection, setAudioOutputDeviceSelection] = useState<AudioDeviceSelection>({devices: [], selected: ""})
+  const [audioInputDeviceSelection, setAudioInputDeviceSelection] = useState<AudioDeviceSelection>({ devices: [], selected: "" })
+  const [audioOutputDeviceSelection, setAudioOutputDeviceSelection] = useState<AudioDeviceSelection>({ devices: [], selected: "" })
   const [inputDeviceSelected, setInputDeviceSelected] = useState<String>("")
   const [outputDeviceSelected, setOutputDeviceSelected] = useState<String>("")
 
-  // get all info needed for the settings modal
-  useEffect(() => {
-    invoke("get_permissions").then((permissions: any) => {
-      setPermissions(permissions as Permissions)
+  function refreshAudioDevices() {
+    // refresh audio input and ouput devices every 2 seconds
+    invoke("get_audio_input_devices").then((audioInputDeviceSelection: any) => {
+      setInputDeviceSelected(audioInputDeviceSelection.selected)
+      setAudioInputDeviceSelection(audioInputDeviceSelection)
+      // console.log(audioInputDeviceSelection.selected)
     })
 
-    // refresh audio input and ouput devices every 2 seconds
-    const refreshAudioDevices = setInterval(() => {
-      invoke("get_audio_input_devices").then((audioInputDeviceSelection: any) => {
-        setInputDeviceSelected(audioInputDeviceSelection.selected)
-        setAudioInputDeviceSelection(audioInputDeviceSelection)
-        // console.log(audioInputDeviceSelection.selected)
-      })
-  
-      invoke("get_audio_output_devices").then((audioOutputDeviceSelection: any) => {
-        setOutputDeviceSelected(audioOutputDeviceSelection.selected)
-        setAudioOutputDeviceSelection(audioOutputDeviceSelection)
-        // console.log(audioOutputDeviceSelection.selected)
-      })
-    }, 2000)
+    invoke("get_audio_output_devices").then((audioOutputDeviceSelection: any) => {
+      setOutputDeviceSelected(audioOutputDeviceSelection.selected)
+      setAudioOutputDeviceSelection(audioOutputDeviceSelection)
+      // console.log(audioOutputDeviceSelection.selected)
+    })
+  }
 
-    // this isn't working correctly, interval remains even after modal is not shown
-    return () => clearInterval(refreshAudioDevices)
+  // get all info needed for the settings modal
+  const shouldInvoke = useRef(false); // only run the effect once
+  useEffect(() => {
+
+    if (!shouldInvoke.current) {
+      shouldInvoke.current = true;
+
+      invoke("get_permissions").then((permissions: any) => {
+        setPermissions(permissions as Permissions)
+      })
+
+      refreshAudioDevices()
+    }
   }, [])
 
   const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,7 +65,11 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
 
   useEffect(() => {
     async function updatePermissions() {
-      await invoke("update_permissions", { permissions: permissions })
+      if (Object.keys(permissions).length > 0) {
+        await invoke("update_permissions", { permissions: permissions }).then(() => {
+          console.log("updating permissions")
+        })
+      }
     }
     updatePermissions()
   }, [permissions])
@@ -119,7 +131,7 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
               </div>
             ))}
             <hr />
-            Audio
+            <AudioHeader onClickRefresh={refreshAudioDevices} />
             <hr />
             {audioInputDeviceSelection.selected != "" ? (
               <div>
@@ -158,10 +170,17 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
                   ))}
                 </div>
               </div>
-              ) : (
-                <CicularLoading />
-              )}
+            ) : (
+              <CicularLoading size='small' />
+            )}
           </div>
+          <hr />
+          Account
+          <hr />
+        </div>
+        <div className='accountwrapper'>
+          <UserIcon></UserIcon>
+          <LogoutButton></LogoutButton>
         </div>
       </div>
     </div>

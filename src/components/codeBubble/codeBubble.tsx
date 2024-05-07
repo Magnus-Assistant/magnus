@@ -32,6 +32,10 @@ const CodeBubble: React.FC<Props> = ({ codeChunk }) => {
             console.log('no copy! :(' + err)
         }
     }
+
+    const customStyle = {
+        backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#3f3f3f' : 'white'
+    };
     
     return (
         <span>
@@ -51,7 +55,7 @@ const CodeBubble: React.FC<Props> = ({ codeChunk }) => {
                     </button>
                 </div>
                 <div className='codeBlock'>
-                    <Prism language={language} style={tomorrow} customStyle={{backgroundColor: '#3c3c3c'}}>
+                    <Prism language={language} style={tomorrow} customStyle={customStyle}>
                         {code}
                     </Prism>
                 </div>
