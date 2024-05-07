@@ -147,7 +147,7 @@ function App() {
         // listen for when magnus takes an action
         await listen<Payload>("action", (response) => {
           if (typeof (response.payload.message) === "string") {
-            const actionMessage: Message = { type: 'magnus', text: response.payload.message, excludeFromCount: true }
+            const actionMessage: Message = { type: 'magnus', text: response.payload.message }
             setMessages((prevMessages) => [...prevMessages, actionMessage])
           }
         })
