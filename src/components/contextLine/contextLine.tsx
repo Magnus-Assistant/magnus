@@ -1,6 +1,6 @@
 import './styles.css';
 
-const ContextLine = () => {
+const ContextLine: React.FC = () => {
 
   return (
     <>
