@@ -1,5 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use cpal::traits::DeviceTrait;
 use dotenv;
@@ -75,6 +75,7 @@ fn get_audio_input_devices() -> Value {
         "selected": current_device.name().unwrap()
     }).as_object().unwrap().clone())
 }
+
 #[tauri::command]
 fn get_audio_output_devices() -> Value {
     let output_devices = audio_output::get_audio_output_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
