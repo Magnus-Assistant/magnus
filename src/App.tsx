@@ -97,19 +97,19 @@ function App() {
 
   function canUseInput(canToggle: boolean) {
     let textBox = document.getElementById("magnus-textbox") as HTMLTextAreaElement
-    textBox ? textBox.disabled = !canToggle : null
+    textBox ? textBox.disabled = !canToggle : {}
     // click back into input field for convenience
     if (textBox && canToggle) {
       textareaRef.current?.focus()
     }
     
     let micButton = document.getElementById("micButton") as HTMLButtonElement
-    micButton ? micButton.disabled = !canToggle : null
-    micButton.style.cursor = 'default';
+    micButton ? micButton.disabled = !canToggle : {}
+    canToggle ? micButton.style.cursor = 'pointer' : micButton.style.cursor = 'default'
 
     let submitButton = document.getElementById("submitButton") as HTMLButtonElement
-    submitButton ? submitButton.disabled = !canToggle : null
-    submitButton.style.cursor = 'default';
+    submitButton ? submitButton.disabled = !canToggle : {}
+    canToggle ? submitButton.style.cursor = 'pointer' : submitButton.style.cursor = 'default'
   }
 
   const hasBeenCalledRef = useRef(false);

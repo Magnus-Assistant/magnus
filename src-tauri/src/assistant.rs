@@ -65,8 +65,6 @@ pub async fn create_message(user_message: serde_json::Value, thread_id: String) 
 pub async fn create_run(thread_id: String) -> Result<String, Error> {
     let n_messages_in_context = if globals::get_is_signed_in() { 5 }  else { 2 };
 
-    println!("IS SIGNED IN? {} & N MESSAGES {n_messages_in_context}", globals::get_is_signed_in());
-
     let data = serde_json::json!({
         "assistant_id": get_magnus_id(),
         "truncation_strategy": {
