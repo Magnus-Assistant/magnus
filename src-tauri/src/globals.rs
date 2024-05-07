@@ -6,7 +6,9 @@ use vosk::Model;
 
 lazy_static! {
     static ref REQWEST_CLIENT: Client = Client::new();
+
     static ref THREAD_ID: Mutex<String> = Mutex::new("".to_string());
+
     static ref VOSK_MODEL: Model = {
         // let model_path = "./models/vosk-model-en-us-0.42-gigaspeech/";
 
@@ -42,30 +44,50 @@ lazy_static! {
             Err(_) => panic!("Could not fetch Magnus ID!")
         }
     };
+
     static ref OPENAI_KEY: String = {
         match env::var("OPENAI_KEY") {
             Ok(value) => value,
             Err(_) => { println!("Could not fetch OpenAI API key!"); return "".to_string() }
         }
     };
+    
     static ref IPAPI_KEY: String = {
         match env::var("IPAPI_KEY") {
             Ok(value) => value,
             Err(_) => { println!("Could not fetch IP API key!"); return "".to_string() }
         }
     };
+
     static ref WEATHER_API_USER_AGENT: String = {
         match env::var("WEATHER_API_USER_AGENT") {
             Ok(value) => value,
             Err(_) => { println!("Could not fetch weather API User-Agent!"); return "".to_string() }
         }
     };
+
     static ref OPENCAGE_KEY: String = {
         match env::var("OPENCAGE_KEY") {
             Ok(value) => value,
             Err(_) => { println!("Could not fetch OpenCage API key!"); return "".to_string() }
         }
     };
+
+    static ref AUTH_DOMAIN: String = {
+        match env::var("AUTH_DOMAIN") {
+            Ok(value) => value,
+            Err(_) => { println!("Could not fetch auth domain!"); return "".to_string() }
+        }
+    };
+
+    static ref AUTH_CLIENT_ID: String = {
+        match env::var("AUTH_CLIENT_ID") {
+            Ok(value) => value,
+            Err(_) => { println!("Could not fetch auth client ID!"); return "".to_string() }
+        }
+    };
+
+    static ref IS_SIGNED_IN: Mutex<bool> = Mutex::new(false);
 }
 
 pub fn get_reqwest_client() -> &'static Client {
@@ -102,4 +124,20 @@ pub fn get_thread_id() -> String {
 
 pub fn set_thread_id(new_value: String) {
     *THREAD_ID.lock().unwrap() = new_value;
+}
+
+pub fn get_auth_domain() -> &'static String {
+    &AUTH_DOMAIN
+}
+
+pub fn get_auth_client_id() -> &'static String {
+    &AUTH_CLIENT_ID
+}
+
+pub fn get_is_signed_in() -> bool {
+    IS_SIGNED_IN.lock().unwrap().clone()
+}
+
+pub fn set_is_signed_in(is_signed_in: bool) {
+    *IS_SIGNED_IN.lock().unwrap() = is_signed_in;
 }

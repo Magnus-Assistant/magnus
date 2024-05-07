@@ -1,10 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cpal::traits::DeviceTrait;
 use dotenv;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, GlobalShortcutManager, Manager};
@@ -14,7 +15,7 @@ mod assistant;
 mod audio_input;
 mod audio_output;
 mod globals;
-mod permissions;
+mod settings;
 mod tools; 
 
 lazy_static! {
@@ -40,22 +41,68 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
-fn get_permissions() -> Value {
-    permissions::get_permissions()
+fn set_is_signed_in(is_signed_in: bool) {
+    globals::set_is_signed_in(is_signed_in)
 }
 
 #[tauri::command]
-async fn update_permissions(permissions: Value) {
-    println!("{permissions:?}");
-    permissions::update_permissions(permissions)
+fn get_auth_client_id() -> String {
+    globals::get_auth_client_id().to_string()
+}
+
+#[tauri::command]
+fn get_auth_domain() -> String {
+    globals::get_auth_domain().to_string()
+}
+
+#[tauri::command]
+fn get_permissions() -> Value {
+    settings::get_permissions()
+}
+
+#[tauri::command]
+fn update_permissions(permissions: Value) {
+    settings::update_permissions(permissions)
+}
+
+#[tauri::command]
+fn get_audio_input_devices() -> Value {
+    let input_devices = audio_input::get_audio_input_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+    let current_device = audio_input::get_current_audio_input_device();
+
+    Value::Object(json!({
+        "devices": input_devices,
+        "selected": current_device.name().unwrap()
+    }).as_object().unwrap().clone())
+}
+
+#[tauri::command]
+fn get_audio_output_devices() -> Value {
+    let output_devices = audio_output::get_audio_output_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+    let current_device = audio_output::get_current_audio_output_device();
+
+    Value::Object(json!({
+        "devices": output_devices,
+        "selected": current_device.name().unwrap()
+    }).as_object().unwrap().clone())
+}
+
+#[tauri::command]
+fn audio_input_device_selection(device_name: String) {
+    let mut settings = settings::get_settings().as_object_mut().unwrap().clone();
+    settings.insert("audioInputDeviceSelection".to_string(), Into::<Value>::into(device_name));
+    settings::update_settings(Into::<Value>::into(settings));
+}
+
+#[tauri::command]
+fn audio_output_device_selection(device_name: String) {
+    let mut settings = settings::get_settings().as_object_mut().unwrap().clone();
+    settings.insert("audioOutputDeviceSelection".to_string(), Into::<Value>::into(device_name));
+    settings::update_settings(Into::<Value>::into(settings));
 }
 
 #[tauri::command]
 async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<String>) {
-
-    let should_tts = permissions::get_permissions().get("Tts").unwrap().as_bool().unwrap();
-    println!("TTS enabled?: {}", should_tts);
-
     // if we have no user message, attempt to get speech input
     let user_message = match user_message {
         Some(message) => Some(message),
@@ -85,6 +132,7 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
             // exclude code snippets from tts
             let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
             let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
+            let should_tts: bool = settings::get_permissions().get("Tts").unwrap().as_bool().unwrap();
 
             if should_tts && text_to_speak.trim() != "" {
                 thread::spawn(move || {
@@ -106,8 +154,7 @@ fn main() {
     if cfg!(debug_assertions) {
         dotenv::dotenv().ok();
         println!("dev!!!!");
-    }
-    else {
+    } else {
         #[cfg(target_os = "windows")]
         let env = include_str!("..\\.env");
 
@@ -119,16 +166,16 @@ fn main() {
             if line.trim().is_empty() || line.starts_with('#') {
                 continue;
             }
-    
+
             if let Some((key, value)) = line.split_once('=') {
                 // trim potential whitespace
                 let key = key.trim();
                 let value = value.trim();
-    
+
                 // set environment variable
                 std::env::set_var(key, value);
             }
-        }    
+        }
         println!("prod!!!!");
     }
 
@@ -172,7 +219,18 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_conversation_flow, get_permissions, update_permissions])
+        .invoke_handler(tauri::generate_handler![
+            run_conversation_flow,
+            get_permissions,
+            update_permissions,
+            get_audio_input_devices,
+            get_audio_output_devices,
+            audio_input_device_selection,
+            audio_output_device_selection,
+            get_auth_client_id,
+            get_auth_domain,
+            set_is_signed_in
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

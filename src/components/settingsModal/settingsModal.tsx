@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import './styles.css'
 import { invoke } from "@tauri-apps/api/tauri"
+import CicularLoading from "../circularLoading/circularLoading"
+import LogoutButton from '../logoutButton/logoutButton';
+import UserIcon from '../userIcon/userIcon';
+import AudioHeader from '../audioHeader/audioHeader';
 
 interface ModalProps {
   show: boolean;
@@ -11,30 +15,64 @@ interface Permissions {
   [key: string]: boolean;
 }
 
+interface AudioDeviceSelection {
+  devices: string[];
+  selected: string;
+}
+
 const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
   if (!show) return null;
 
-  const [toggles, setToggles] = useState<Permissions>({})
-  useEffect(() => {
-    invoke("get_permissions").then((permissions: any) => {
-      setToggles(permissions as Permissions)
+  const [permissions, setPermissions] = useState<Permissions>({})
+  const [audioInputDeviceSelection, setAudioInputDeviceSelection] = useState<AudioDeviceSelection>({ devices: [], selected: "" })
+  const [audioOutputDeviceSelection, setAudioOutputDeviceSelection] = useState<AudioDeviceSelection>({ devices: [], selected: "" })
+  const [inputDeviceSelected, setInputDeviceSelected] = useState<String>("")
+  const [outputDeviceSelected, setOutputDeviceSelected] = useState<String>("")
+
+  function refreshAudioDevices() {
+    // refresh audio input and ouput devices every 2 seconds
+    invoke("get_audio_input_devices").then((audioInputDeviceSelection: any) => {
+      setInputDeviceSelected(audioInputDeviceSelection.selected)
+      setAudioInputDeviceSelection(audioInputDeviceSelection)
+      // console.log(audioInputDeviceSelection.selected)
     })
+
+    invoke("get_audio_output_devices").then((audioOutputDeviceSelection: any) => {
+      setOutputDeviceSelected(audioOutputDeviceSelection.selected)
+      setAudioOutputDeviceSelection(audioOutputDeviceSelection)
+      // console.log(audioOutputDeviceSelection.selected)
+    })
+  }
+
+  // get all info needed for the settings modal
+  const shouldInvoke = useRef(false); // only run the effect once
+  useEffect(() => {
+
+    if (!shouldInvoke.current) {
+      shouldInvoke.current = true;
+
+      invoke("get_permissions").then((permissions: any) => {
+        setPermissions(permissions as Permissions)
+      })
+
+      refreshAudioDevices()
+    }
   }, [])
 
   const handleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setToggles({ ...toggles, [event.target.name]: event.target.checked });
+    setPermissions({ ...permissions, [event.target.name]: event.target.checked });
   };
 
   useEffect(() => {
-    // TODO: update the permissions.json
-    console.log(toggles)
     async function updatePermissions() {
-      await invoke("update_permissions", { permissions: toggles }).then(() => {
-        console.log("updating permissions")
-      })
+      if (Object.keys(permissions).length > 0) {
+        await invoke("update_permissions", { permissions: permissions }).then(() => {
+          console.log("updating permissions")
+        })
+      }
     }
     updatePermissions()
-  }, [toggles])
+  }, [permissions])
 
   useEffect(() => {
     // when clicking anywhere except on the settings modal, close the modal
@@ -56,30 +94,93 @@ const SettingsModal: React.FC<ModalProps> = ({ show, onClose }) => {
     };
   }, [show]);
 
+  const handleAudioInputDeviceSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInputDeviceSelected(event.target.value)
+    await invoke("audio_input_device_selection", { deviceName: event.target.value })
+  };
+
+  const handleAudioOutputDeviceSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    setOutputDeviceSelected(event.target.value)
+    await invoke("audio_output_device_selection", { deviceName: event.target.value })
+  }
+
   return (
     <div className="modal-backdrop">
       <div className="large-modal">
         <div className="modal-header">
-          <h2>Settings</h2>
+          <h1>Settings</h1>
           <button onClick={onClose}>&times;</button>
         </div>
         <div className="modal-body">
-            <form>
-              {Object.entries(toggles).map(([name, value]) => (
-                <div key={name} className="form-item">
-                  <label className="label" htmlFor={name}>{name}</label>
-                  <label className="switch">
-                    <input
-                      name={name}
-                      type="checkbox"
-                      checked={value}
-                      onChange={handleToggle}
-                    />
-                    <span className="slider round"></span>
-                  </label>
+          <div>
+            <hr />
+            Permissions
+            <hr />
+            {Object.entries(permissions).map(([name, value]) => (
+              <div key={name} className="permissions">
+                <label className="label" htmlFor={name}>{name}</label>
+                <label className="switch">
+                  <input
+                    name={name}
+                    type="checkbox"
+                    checked={value}
+                    onChange={handleToggle}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+            ))}
+            <hr />
+            <AudioHeader onClickRefresh={refreshAudioDevices} />
+            <hr />
+            {audioInputDeviceSelection.selected != "" ? (
+              <div>
+                <div className="section-title">Input</div>
+                <div className='device-list'>
+                  {audioInputDeviceSelection.devices.map((device, index) => (
+                    <div key={device}>
+                      <input
+                        id={`inputDevice-${index}`}
+                        type="radio"
+                        value={device}
+                        checked={inputDeviceSelected === device}
+                        onChange={handleAudioInputDeviceSelection}
+                      />
+                      <label htmlFor={`inputDevice-${index}`}>
+                        {device}
+                      </label>
+                    </div>
+                  ))}
                 </div>
-              ))}
-          </form>
+                <div className="section-title">Output</div>
+                <div className='device-list'>
+                  {audioOutputDeviceSelection.devices.map((device, index) => (
+                    <div key={device}>
+                      <input
+                        id={`outputDevice-${index}`}
+                        type="radio"
+                        value={device}
+                        checked={outputDeviceSelected === device}
+                        onChange={handleAudioOutputDeviceSelection}
+                      />
+                      <label htmlFor={`outputDevice-${index}`}>
+                        {device}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <CicularLoading size='small' />
+            )}
+          </div>
+          <hr />
+          Account
+          <hr />
+        </div>
+        <div className='accountwrapper'>
+          <UserIcon></UserIcon>
+          <LogoutButton></LogoutButton>
         </div>
       </div>
     </div>

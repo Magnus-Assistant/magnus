@@ -1,0 +1,125 @@
+.signinwrapper {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    width: fit-content;
+    min-width: 40%;
+    max-width: 70%;
+    justify-content: center;
+    margin: auto;
+    margin-top: 25vh;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.signupbutton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    height: 50px;
+    width: 100px;
+}
+
+.previewbutton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    height: 50px;
+    width: 100px;
+}
+
+.signintextwrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    margin-top: 0px;
+}
+
+.signinheader {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.signintext {
+    font-size: 16px;
+    margin-bottom: 6px;
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-weight: 500;
+}
+
+.signinbuttonwrapper {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 10px;
+}
+
+.columncontainer {
+    display: flex;
+}
+
+.column {
+    flex: 1;
+    position: relative;
+    width: 100%;
+}
+
+.column:not(:last-child):after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: lightgrey;
+}
+
+.column h3 {
+    text-align: center;
+}
+
+@media (prefers-color-scheme: light) {
+    .signinwrapper {
+        background-color: whitesmoke;
+        border: 2px solid  lightgrey;
+    }
+
+    .signupbutton {
+        background-color: rgb(79, 129, 255);
+    }
+
+    .previewbutton {
+        background-color: lightgrey;
+        outline: 1px solid lightgrey;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color: lightgrey;
+    }
+
+    .signinwrapper {
+        background-color: #484848;
+        border: 2px solid  lightgrey;
+    }
+
+    .signupbutton {
+        background-color: rgb(79, 129, 255);
+    }
+
+    .previewbutton {
+        background-color: lightgrey;
+        outline: 1px solid lightgrey;
+    }
+}

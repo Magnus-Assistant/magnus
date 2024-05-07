@@ -1,7 +1,7 @@
-use crate::assistant;
+use crate::{assistant, audio_output_device_selection, settings};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{
-    Device, FromSample, Sample, SampleFormat, StreamConfig, StreamError, SupportedStreamConfig,
+    Device, FromSample, Sample, StreamConfig, StreamError
 };
 use crossbeam::channel::{bounded, Receiver, Sender};
 use std::{
@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-pub fn get_audio_output_device() -> Device {
+pub fn get_default_audio_output_device() -> Device {
     let host = cpal::default_host();
 
     let audio_output_device: Device = loop {
@@ -28,6 +28,34 @@ pub fn get_audio_output_device() -> Device {
     );
 
     audio_output_device
+}
+
+pub fn get_current_audio_output_device() -> Device {
+    let settings = settings::get_settings().as_object().unwrap().clone();
+    let current_selection = settings.get("audioOutputDeviceSelection").unwrap().as_str().unwrap().to_string();
+    let available_devices = get_audio_output_device_list();
+
+    for device in available_devices {
+        if device.name().unwrap() == current_selection {
+            return device
+        }
+    }
+
+    // if selected device is not available, go with the default
+    let default_device = get_default_audio_output_device();
+
+    // set selection to default device
+    audio_output_device_selection(default_device.name().unwrap());
+    
+    default_device
+}
+
+pub fn get_audio_output_device_list() -> Vec<Device> {
+    let host = cpal::default_host();
+
+    let output_devices = host.output_devices().unwrap().collect::<Vec<_>>();
+
+    output_devices
 }
 
 pub fn run_stream(
@@ -114,7 +142,7 @@ pub async fn speak(assistant_message: String) -> Result<(), Box<dyn Error>> {
     let synthesizing: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
     // find an output device
-    let audio_output_device = get_audio_output_device();
+    let audio_output_device = get_current_audio_output_device();
     let audio_output_config = audio_output_device.default_output_config().unwrap();
 
     // spawn create_speech with sender
