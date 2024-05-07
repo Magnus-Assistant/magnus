@@ -1,5 +1,5 @@
 import "./styles.css"
-import RefreshIcon from "../../assets/RefreshIcon.png"
+import RefreshIcon from "../../assets/RefreshIcon.svg"
 
 interface Props {
   onClickRefresh: () => void

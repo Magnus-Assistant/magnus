@@ -29,6 +29,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .modal-header button {
@@ -187,7 +189,6 @@ input:checked+.slider:before {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding-top: 5px;
 }
 
 @media (prefers-color-scheme: light) {
