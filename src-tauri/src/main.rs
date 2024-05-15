@@ -45,7 +45,7 @@ async fn create_message_thread() -> String {
 #[tauri::command]
 async fn create_user(user: User) {
     match add_user(user).await {
-        Ok(_) => println!("Created user"),
+        Ok(_) => {},
         Err(err) => {
             println!("Error creating user: {}", err)
         }
