@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use cpal::traits::DeviceTrait;
+use db::{add_user, User};
 use dotenv;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -14,9 +15,10 @@ use tokio::runtime::Runtime;
 mod assistant;
 mod audio_input;
 mod audio_output;
+mod db;
 mod globals;
 mod settings;
-mod tools; 
+mod tools;
 
 lazy_static! {
     static ref APP_HANDLE: Arc<Mutex<Option<AppHandle>>> = Arc::new(Mutex::new(None));
@@ -37,6 +39,16 @@ async fn create_message_thread() -> String {
             thread_id
         }
         Err(_) => panic!("Error creating the message thread!"),
+    }
+}
+
+#[tauri::command]
+async fn create_user(user: User) {
+    match add_user(user).await {
+        Ok(_) => println!("Created user"),
+        Err(err) => {
+            println!("Error creating user: {}", err)
+        }
     }
 }
 
@@ -67,37 +79,59 @@ fn update_permissions(permissions: Value) {
 
 #[tauri::command]
 fn get_audio_input_devices() -> Value {
-    let input_devices = audio_input::get_audio_input_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+    let input_devices = audio_input::get_audio_input_device_list()
+        .iter()
+        .map(|device| Into::<Value>::into(device.name().unwrap()))
+        .collect::<Vec<Value>>();
     let current_device = audio_input::get_current_audio_input_device();
 
-    Value::Object(json!({
-        "devices": input_devices,
-        "selected": current_device.name().unwrap()
-    }).as_object().unwrap().clone())
+    Value::Object(
+        json!({
+            "devices": input_devices,
+            "selected": current_device.name().unwrap()
+        })
+        .as_object()
+        .unwrap()
+        .clone(),
+    )
 }
 
 #[tauri::command]
 fn get_audio_output_devices() -> Value {
-    let output_devices = audio_output::get_audio_output_device_list().iter().map(|device| Into::<Value>::into(device.name().unwrap())).collect::<Vec<Value>>();
+    let output_devices = audio_output::get_audio_output_device_list()
+        .iter()
+        .map(|device| Into::<Value>::into(device.name().unwrap()))
+        .collect::<Vec<Value>>();
     let current_device = audio_output::get_current_audio_output_device();
 
-    Value::Object(json!({
-        "devices": output_devices,
-        "selected": current_device.name().unwrap()
-    }).as_object().unwrap().clone())
+    Value::Object(
+        json!({
+            "devices": output_devices,
+            "selected": current_device.name().unwrap()
+        })
+        .as_object()
+        .unwrap()
+        .clone(),
+    )
 }
 
 #[tauri::command]
 fn audio_input_device_selection(device_name: String) {
     let mut settings = settings::get_settings().as_object_mut().unwrap().clone();
-    settings.insert("audioInputDeviceSelection".to_string(), Into::<Value>::into(device_name));
+    settings.insert(
+        "audioInputDeviceSelection".to_string(),
+        Into::<Value>::into(device_name),
+    );
     settings::update_settings(Into::<Value>::into(settings));
 }
 
 #[tauri::command]
 fn audio_output_device_selection(device_name: String) {
     let mut settings = settings::get_settings().as_object_mut().unwrap().clone();
-    settings.insert("audioOutputDeviceSelection".to_string(), Into::<Value>::into(device_name));
+    settings.insert(
+        "audioOutputDeviceSelection".to_string(),
+        Into::<Value>::into(device_name),
+    );
     settings::update_settings(Into::<Value>::into(settings));
 }
 
@@ -131,8 +165,15 @@ async fn run_conversation_flow(app_handle: AppHandle, user_message: Option<Strin
 
             // exclude code snippets from tts
             let code_snippets_regex = Regex::new(r"`{3}[\s\S]+?`{3}").unwrap();
-            let text_to_speak = code_snippets_regex.split(&assistant_message).collect::<Vec<_>>().join("\n");
-            let should_tts: bool = settings::get_permissions().get("Tts").unwrap().as_bool().unwrap();
+            let text_to_speak = code_snippets_regex
+                .split(&assistant_message)
+                .collect::<Vec<_>>()
+                .join("\n");
+            let should_tts: bool = settings::get_permissions()
+                .get("Tts")
+                .unwrap()
+                .as_bool()
+                .unwrap();
 
             if should_tts && text_to_speak.trim() != "" {
                 thread::spawn(move || {
@@ -229,7 +270,8 @@ fn main() {
             audio_output_device_selection,
             get_auth_client_id,
             get_auth_domain,
-            set_is_signed_in
+            set_is_signed_in,
+            create_user
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
