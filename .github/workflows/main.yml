@@ -46,7 +46,8 @@ jobs:
           echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}" >> ./src-tauri/.env
           echo "AUTH_DOMAIN=${{ secrets.AUTH_DOMAIN }}" >> ./src-tauri/.env
           echo "AUTH_CLIENT_ID=${{ secrets.AUTH_CLIENT_ID }}" >> ./src-tauri/.env
-        shell: bash
+          echo "IS_PROD=true" >> ./src-tauri/.env
+          shell: bash
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
