@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use cpal::traits::DeviceTrait;
-use db::{add_user, User};
+use db::{Log, User};
 use dotenv;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -43,8 +43,18 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+async fn create_log(log: Log) {
+    match Log::log(log).await {
+    Ok(_) => {},
+    Err(err) => {
+        println!("Error creating log: {}", err)
+    },
+    }
+}
+
+#[tauri::command]
 async fn create_user(user: User) {
-    match add_user(user).await {
+    match User::add_user(user).await {
         Ok(_) => {},
         Err(err) => {
             println!("Error creating user: {}", err)
@@ -271,7 +281,8 @@ fn main() {
             get_auth_client_id,
             get_auth_domain,
             set_is_signed_in,
-            create_user
+            create_user,
+            create_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

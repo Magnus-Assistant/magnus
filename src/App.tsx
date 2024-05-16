@@ -10,6 +10,7 @@ import LoginForm from "./components/loginForm/loginForm";
 import { useAuth0 } from "@auth0/auth0-react";
 import CircularLoading from "./components/circularLoading/circularLoading";
 import * as c from 'crypto-js';
+import log, { LogLevels } from "./logUtils/log";
 
 type Payload = {
   message: string;
@@ -44,6 +45,9 @@ function App() {
   // also if something were to happen where they are no longer auth'd the backend would be informed as well
   useEffect(() => {
     if (isAuthenticated) {
+
+      log(generateHash(user?.email), LogLevels.Info, "User successfully logged in");
+
       let created = new Date();
       invoke("set_is_signed_in", { isSignedIn: true })
 
