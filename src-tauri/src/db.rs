@@ -12,7 +12,7 @@ lazy_static! {
                 if value == "true" {
                     "https://magnusbackend.azurewebsites.net".to_string()
                 } else {
-                    "http://localhost:3000/api".to_string()
+                    "http://localhost:3000".to_string()
                 }
             }
             Err(_) => {
@@ -36,7 +36,7 @@ pub struct User {
 }
 
 pub async fn add_user(user: User) -> Result<(), Box<dyn std::error::Error>> {
-    let url: String = format!("{}/user", get_domain());
+    let url: String = format!("{}/api/user", get_domain());
 
     println!("{}", url);
 
