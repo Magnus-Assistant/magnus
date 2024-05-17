@@ -3,6 +3,7 @@ use crate::globals::{self, get_magnus_id, get_open_ai_key, get_reqwest_client, g
 use crate::tools::*;
 use cpal::SampleRate;
 use crossbeam::channel::Sender;
+use globals::get_auth_user_id;
 use ogg::reading::async_api::PacketReader;
 use opus::Decoder;
 use reqwest::header::TRANSFER_ENCODING;
@@ -11,7 +12,6 @@ use serde_json::{Map, Value};
 use std::time::Duration;
 use tokio_stream::StreamExt;
 use tokio_util::io::StreamReader;
-use globals::get_auth_user_id;
 
 pub async fn run(user_message: String) -> String {
     let message = serde_json::json!({
@@ -29,15 +29,13 @@ pub async fn run(user_message: String) -> String {
 
     let assistant_response = get_assistant_last_response(get_thread_id()).await.unwrap();
 
-    match Log::log(Log {
+    let _ = Log::log(Log {
         user_id: get_auth_user_id(),
         log_level: LogLevels::Info,
         message: "Successful Assistant Response!".to_string(),
         source: Some("assistant.rs".to_string()),
-    }).await {
-        Ok(_) => {},
-        Err(err) => println!("Failed to send log: {}", err),
-    }
+    })
+    .await;
 
     assistant_response
 }

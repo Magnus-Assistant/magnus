@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::globals::get_reqwest_client;
+use crate::globals::{get_auth_user_id, get_reqwest_client};
 use lazy_static::lazy_static;
 
 // dynamically choose the domain based on the env value "IS_PROD"
@@ -40,19 +40,34 @@ impl User {
         let url: String = format!("{}/api/user", get_domain());
 
         let user = serde_json::json!({
-            "userId": user.user_id,
+            // "userId": user.user_id,
             "username": user.username,
             "email": user.email
         });
 
         // send request to create user.
         // we are doing all input validation on the backend
-        let _ = get_reqwest_client()
+        let response = get_reqwest_client()
             .post(url)
             .header("Content-Type", "application/json")
             .json(&user)
             .send()
             .await?;
+
+        // if the result was something other than success of already exists then log
+        if response.status().as_u16() != 200 && response.status().as_u16() != 409 {
+            let _ = Log::log(Log {
+                user_id: get_auth_user_id(),
+                log_level: LogLevels::Info,
+                message: format!(
+                    "Failed to create user. Status: {}, Error: {:?}",
+                    response.status().as_u16(),
+                    response.text().await
+                ),
+                source: Some("assistant.rs".to_string()),
+            })
+            .await;
+        }
 
         Ok(())
     }
