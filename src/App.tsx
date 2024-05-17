@@ -25,7 +25,12 @@ function App() {
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { isLoading, isAuthenticated, error, user } = useAuth0();
+  const { isLoading, isAuthenticated, error, user, getIdTokenClaims } = useAuth0();
+
+  let jwt = getIdTokenClaims().then(token => {
+    console.log(token?.__raw)
+    // invoke and save to a global variable (wrapped in an Option), for every request to the backend send the JWT as the Authenitcation header value example: Bearer *JWT*
+  })
 
   function generateHash(input: string | undefined): string {
     
