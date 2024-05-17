@@ -3,6 +3,7 @@ use crate::globals::{
 };
 use crate::settings::{check_permissions, Permission, Permission::*};
 use crate::{Payload, APP_HANDLE};
+use anyhow::Context;
 use base64::prelude::{Engine as _, BASE64_STANDARD_NO_PAD};
 use chrono::prelude::Local;
 use clipboard::{ClipboardContext, ClipboardProvider};
@@ -13,10 +14,11 @@ use image::{
 use lazy_static::lazy_static;
 use scrap::{Capturer, Display};
 use serde_json::{Map, Value};
-use tauri::Manager;
 use std::{
-    fs::File, future::Future, io::ErrorKind::WouldBlock, path::Path, pin::Pin, sync::Arc, thread::sleep, time::Duration
+    fs::File, future::Future, io::ErrorKind::WouldBlock, path::Path, pin::Pin, sync::Arc,
+    thread::sleep, time::Duration,
 };
+use tauri::Manager;
 use urlencoding::encode;
 
 /*
@@ -34,7 +36,9 @@ memory is not statically known, it can vary. Wrapping the Future in a Box create
 size is able vary. This Box is then wrapped in a Pin which just ensures that the Box doesn't get moved around in memory.
 */
 type SyncAction = dyn Fn(Map<String, Value>) -> String + Send + Sync;
-type AsyncAction = dyn Fn(Map<String, Value>) -> Pin<Box<dyn Future<Output = String> + Send>> + Send + Sync;
+type AsyncAction = dyn Fn(Map<String, Value>) -> Pin<Box<dyn Future<Output = anyhow::Result<String>> + Send>>
+    + Send
+    + Sync;
 
 pub enum Action {
     Sync(Arc<SyncAction>),
@@ -42,9 +46,9 @@ pub enum Action {
 }
 
 pub struct Tool {
-    pub action: Action, // the function that runs when Magnus uses the tool
+    pub action: Action,      // the function that runs when Magnus uses the tool
     pub description: String, // the message that is displayed on the frontend when Magnus uses the tool
-    pub permissions: Option<Vec<Permission>> // the list of Permissions needed to execute the tool
+    pub permissions: Option<Vec<Permission>>, // the list of Permissions needed to execute the tool
 }
 
 impl Tool {
@@ -55,28 +59,32 @@ impl Tool {
         Tool {
             action: Action::Sync(Arc::new(action)),
             description: description,
-            permissions: permissions
+            permissions: permissions,
         }
     }
 
-    pub fn new_async<F, Fut>(action: F, description: String, permissions: Option<Vec<Permission>>) -> Self
+    pub fn new_async<F, Fut>(
+        action: F,
+        description: String,
+        permissions: Option<Vec<Permission>>,
+    ) -> Self
     where
         F: Fn(Map<String, Value>) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = String> + Send + 'static,
+        Fut: Future<Output = anyhow::Result<String>> + Send + 'static,
     {
         Tool {
             action: Action::Async(Arc::new(move |args| Box::pin(action(args)))),
             description: description,
-            permissions: permissions
+            permissions: permissions,
         }
     }
 
-    pub async fn execute(&self, args: Map<String, Value>) -> String {
+    pub async fn execute(&self, args: Map<String, Value>) -> anyhow::Result<String> {
         // check if all permissions are satisfied
         if let Some(permissions) = &self.permissions {
             if let Some(result) = check_permissions(permissions.to_vec()) {
                 println!("got result !!! {}", result.clone());
-                return result
+                return Ok(result);
             }
         }
 
@@ -88,23 +96,40 @@ impl Tool {
         println!("**{}...**", &self.description);
 
         match &self.action {
-            Action::Sync(action) => action(args),
-            Action::Async(action) => action(args).await,
+            Action::Sync(action) => Ok(action(args)),
+            Action::Async(action) => action(args).await.context("Failed to run action"),
         }
     }
 }
 
 // create Tools here to be exposed in assistant.rs
 lazy_static! {
-    pub static ref CLIPBOARD: Tool = Tool::new_sync(get_clipboard_text, "Peeking at your clipboard".to_string(), Some(vec![Clipboard]));
-    pub static ref FORECAST: Tool = Tool::new_async(get_forecast, "Checking the radar".to_string(), None);
-    pub static ref LOCATION_COORDINATES: Tool = Tool::new_async(get_location_coordinates, "Looking at the map".to_string(), None);
-    pub static ref SCREENSHOT: Tool = Tool::new_async(get_screenshot, "Peeking at your screen".to_string(), Some(vec![Screenshot]));
+    pub static ref CLIPBOARD: Tool = Tool::new_sync(
+        get_clipboard_text,
+        "Peeking at your clipboard".to_string(),
+        Some(vec![Clipboard])
+    );
+    pub static ref FORECAST: Tool =
+        Tool::new_async(get_forecast, "Checking the radar".to_string(), None);
+    pub static ref LOCATION_COORDINATES: Tool = Tool::new_async(
+        get_location_coordinates,
+        "Looking at the map".to_string(),
+        None
+    );
+    pub static ref SCREENSHOT: Tool = Tool::new_async(
+        get_screenshot,
+        "Peeking at your screen".to_string(),
+        Some(vec![Screenshot])
+    );
     pub static ref TIME: Tool = Tool::new_sync(get_time, "Checking wrist watch".to_string(), None);
-    pub static ref USER_COORDINATES: Tool = Tool::new_async(get_user_coordinates, "Accessing your location".to_string(), Some(vec![Location]));
+    pub static ref USER_COORDINATES: Tool = Tool::new_async(
+        get_user_coordinates,
+        "Accessing your location".to_string(),
+        Some(vec![Location])
+    );
 }
 
-pub async fn get_location_coordinates(args: Map<String, Value>) -> String {
+pub async fn get_location_coordinates(args: Map<String, Value>) -> anyhow::Result<String> {
     let location = args.get("location").unwrap().as_str().unwrap();
 
     let coordinates_result = get_reqwest_client()
@@ -114,111 +139,115 @@ pub async fn get_location_coordinates(args: Map<String, Value>) -> String {
             encode(location)
         ))
         .send()
-        .await;
-    
-    match coordinates_result {
-        Ok(coordinates_response) => match coordinates_response.json::<Value>().await {
-            Ok(coordinates) => {
-                format!(
-                    "lat: {}, lng: {}",
-                    coordinates["results"][0]["geometry"]["lat"],
-                    coordinates["results"][0]["geometry"]["lng"]
-                )
-            }
-            Err(e) => format!("Unable to parse response: {}", e),
-        },
-        Err(e) => format!("Request to get user's coordinates failed: {}", e),
-    }
+        .await
+        .context("Failed to get users location coordinates")?
+        .json::<Value>()
+        .await
+        .context("Failed to parse coordinate values in response")?;
+
+    let lat = &coordinates_result["results"][0]["geometry"]["lat"];
+    let lng = &coordinates_result["results"][0]["geometry"]["lng"];
+
+    Ok(format!("lat: {}, lng: {}", lat, lng))
 }
 
-pub async fn get_forecast(args: Map<String, Value>) -> String {
-    let lat = &args.get("latitude").unwrap().to_string();
-    let lng = &args.get("longitude").unwrap().to_string();
-    let n_days = &args.get("n_days").unwrap().to_string();
+pub async fn get_forecast(args: Map<String, Value>) -> anyhow::Result<String> {
+    // parse the incoming forcast arguments
+    let lat = &args
+        .get("latitude")
+        .context("Latitude Missing")?
+        .to_string();
+    let lng = &args
+        .get("longitude")
+        .context("Longitude Missing")?
+        .to_string();
+    let n_days = &args
+        .get("n_days")
+        .context("N Days Missing")?
+        .as_i64()
+        .context("Failed to parse n_days")?
+        * 2; // multiply by 2 because we receive the forcast in half days
 
+    // create the weather URL
+    let weather_url = format!("https://api.weather.gov/points/{},{}", lat, lng);
+
+    // request for and parse weather results
     let weather_result = get_reqwest_client()
-        .get(format!("https://api.weather.gov/points/{},{}", lat, lng))
+        .get(&weather_url)
         .header("User-Agent", get_weather_api_user_agent())
         .send()
-        .await;
+        .await
+        .context("Failed to request weather data")?
+        .json::<Value>()
+        .await
+        .context("Failed to parse parse weather json response")?;
 
-    match weather_result {
-        Ok(weather_response) => {
-            match weather_response.json::<Value>().await {
-                Ok(weather) => {
-                    let forecast_url = weather["properties"]["forecast"]
-                        .to_string()
-                        .trim_matches('"')
-                        .to_string();
-                    let forecast_result = get_reqwest_client()
-                        .get(forecast_url)
-                        .header("User-Agent", get_weather_api_user_agent())
-                        .send()
-                        .await;
+    // create initial values
+    let forecast_url = weather_result["properties"]["forecast"].as_str();
 
-                    match forecast_result {
-                        Ok(forecast_response) => {
-                            match forecast_response.json::<Value>().await {
-                                Ok(forecast) => {
-                                    match forecast["properties"]["periods"].as_array() {
-                                        Some(days) => {
-                                            let mut the_forecast = "".to_string();
-                                            let mut num_days = n_days.parse().unwrap();
-                                            num_days *= 2; // because we receive forecast in half days, and assistants gives us n days
-                                            for day in 0..num_days {
-                                                match days[day].as_object() {
-                                                    Some(day_forecast) => {
-                                                        the_forecast.push_str(
-                                                            format!(
-                                                                "{}: {}\n",
-                                                                day_forecast["name"],
-                                                                day_forecast["detailedForecast"]
-                                                            )
-                                                            .as_str(),
-                                                        );
-                                                    }
-                                                    _ => {
-                                                        return "Couldn't make day into an object."
-                                                            .to_string()
-                                                    }
-                                                }
-                                            }
-                                            the_forecast
-                                        }
-                                        _ => "No forecast in response.".to_string(),
-                                    }
-                                }
-                                Err(e) => format!("Unable to parse forecast response: {}", e),
-                            }
-                        }
-                        Err(e) => format!("Request to get forecast failed: {}", e),
-                    }
+    // create an initial vec that can hold the days later if they exist in the match
+    let days_vec = vec![Value::Null];
+    let days = Some(&days_vec);
+    let mut the_forecast = String::new();
+
+    // guard against null values in these two vars
+    match (forecast_url, days) {
+        // send and parse the forecast response
+        (Some(forecast_url), Some(_days)) => {
+            let forecast_response = get_reqwest_client()
+                .get(forecast_url)
+                .header("User-Agent", get_weather_api_user_agent())
+                .send()
+                .await
+                .context("Failed to request forecast data")?
+                .json::<Value>()
+                .await
+                .context("Failed to parse forecast response")?;
+
+            // save days to vec
+            if let Some(days) = forecast_response["properties"]["periods"].as_array() {
+                for day in 0..n_days as usize {
+                    // change to usize so we can use it for indexing
+                    let name = days[day]
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .context("Missing forecast day name")?;
+                    let detailed_forecast = days[day]
+                        .get("detailedForecast")
+                        .and_then(Value::as_str)
+                        .context("Missing detailed forecast")?;
+                    the_forecast.push_str(&format!("{}: {}\n", name, detailed_forecast));
                 }
-                Err(e) => format!("Unable to parse weather response: {}", e),
+            } else {
+                // if we dont have any days information return an error to the assistant
+                return Ok(
+                    "Error recieving weather information. Please try again later".to_string(),
+                );
             }
+
+            // all is well, return the forecast
+            Ok(the_forecast)
         }
-        Err(e) => format!("Request to get weather failed: {}", e),
+        // if we get any value other than the ones we haven't caught above, error
+        (_, _) => Ok("Error recieving weather information. Please try again later".to_string()),
     }
 }
 
-pub async fn get_user_coordinates(_: Map<String, Value>) -> String {
+pub async fn get_user_coordinates(_: Map<String, Value>) -> anyhow::Result<String> {
     let user_coordinates_result = get_reqwest_client()
         .get(format!("https://ipapi.co/json/?key={}", get_ip_api_key()))
         .send()
-        .await;
+        .await
+        .context("Failed to send request for user coordinates")?
+        .json::<Value>()
+        .await
+        .context("Failed to parse user coordinates")?;
 
-    match user_coordinates_result {
-        Ok(user_coordinates_response) => match user_coordinates_response.json::<Value>().await {
-            Ok(user_coordinates) => {
-                format!(
-                    "lat: {}, lng: {}",
-                    user_coordinates["latitude"], user_coordinates["longitude"]
-                )
-            }
-            Err(e) => format!("Unable to parse response: {}", e),
-        },
-        Err(e) => format!("Request to get user's coordinates failed: {}", e),
-    }
+    // if we successfully hit the lat and lng api we shouldnt have to worry about this failing
+    let lat = &user_coordinates_result["latitude"];
+    let lng = &user_coordinates_result["longitude"];
+
+    Ok(format!("lat: {}, lng: {}", lat, lng))
 }
 
 // returns the contents of the systems clipboard
@@ -228,16 +257,22 @@ pub fn get_clipboard_text(_: Map<String, Value>) -> String {
         Ok(text) => text,
         Err(error) => {
             panic!("Error getting clipboard contents: {}", error);
-        },
+        }
     }
 }
 
 // returns a string representation of a base64 screenshot of the primary display
-pub async fn get_screenshot(_: Map<String, Value>) -> String {
-    let display = Display::primary().expect("Couldn't find primary display.");
-    let width: u32 = display.width().try_into().unwrap();
-    let height: u32 = display.height().try_into().unwrap();
-    let mut capturer = Capturer::new(display).expect("Couldn't begin capture.");
+pub async fn get_screenshot(_: Map<String, Value>) -> anyhow::Result<String> {
+    let display = Display::primary().context("Failed to gather display information")?;
+    let width: u32 = display
+        .width()
+        .try_into()
+        .context("Failed to convert width to u32")?;
+    let height: u32 = display
+        .height()
+        .try_into()
+        .context("Failed to convert height to u32")?;
+    let mut capturer = Capturer::new(display).context("Unable to start capture.")?;
 
     loop {
         // wait for a frame
@@ -247,7 +282,7 @@ pub async fn get_screenshot(_: Map<String, Value>) -> String {
                 sleep(Duration::from_millis(100));
                 continue;
             }
-            Err(e) => panic!("Error: {}", e),
+            Err(e) => panic!("Error: {}", e), // Leaving this as is for now while I convert things to anyhow results
         };
 
         // convert the image data to an image
@@ -273,13 +308,13 @@ pub async fn get_screenshot(_: Map<String, Value>) -> String {
 
         // write image for now, for viewing purposes. this will be removed later
         let path = Path::new("C:/Users/schre/Projects/screenshot.png");
-        let file = File::create(path).expect("Couldn't create output file.");
+        let file = File::create(path).context("Failed to created output file for screenshot")?;
         PngEncoder::new(file)
             .write_image(&resized_img, new_width, new_height, Rgba8)
-            .expect("Couldn't encode frame.");
+            .context("Failed to encode frame")?;
 
         // only need one frame
-        return base64_image.to_string();
+        return Ok(base64_image.to_string());
     }
 }
 
