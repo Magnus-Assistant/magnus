@@ -35,7 +35,7 @@ AsyncAction returns a Future that results in a String, which must be wrapped in 
 memory is not statically known, it can vary. Wrapping the Future in a Box creates the Future in heap-space, where the
 size is able vary. This Box is then wrapped in a Pin which just ensures that the Box doesn't get moved around in memory.
 */
-type SyncAction = dyn Fn(Map<String, Value>) -> String + Send + Sync;
+type SyncAction = dyn Fn(Map<String, Value>) -> anyhow::Result<String> + Send + Sync;
 type AsyncAction = dyn Fn(Map<String, Value>) -> Pin<Box<dyn Future<Output = anyhow::Result<String>> + Send>>
     + Send
     + Sync;
@@ -54,7 +54,7 @@ pub struct Tool {
 impl Tool {
     pub fn new_sync<F>(action: F, description: String, permissions: Option<Vec<Permission>>) -> Self
     where
-        F: Fn(Map<String, Value>) -> String + Send + Sync + 'static,
+        F: Fn(Map<String, Value>) -> anyhow::Result<String> + Send + Sync + 'static,
     {
         Tool {
             action: Action::Sync(Arc::new(action)),
@@ -96,8 +96,8 @@ impl Tool {
         println!("**{}...**", &self.description);
 
         match &self.action {
-            Action::Sync(action) => Ok(action(args)),
-            Action::Async(action) => action(args).await.context("Failed to run action"),
+            Action::Sync(action) => Ok(action(args).context("Failed to run sync action")?),
+            Action::Async(action) => action(args).await.context("Failed to run async action"),
         }
     }
 }
@@ -251,14 +251,16 @@ pub async fn get_user_coordinates(_: Map<String, Value>) -> anyhow::Result<Strin
 }
 
 // returns the contents of the systems clipboard
-pub fn get_clipboard_text(_: Map<String, Value>) -> String {
-    let mut clipboard = ClipboardContext::new().unwrap();
-    match clipboard.get_contents() {
-        Ok(text) => text,
-        Err(error) => {
-            panic!("Error getting clipboard contents: {}", error);
-        }
-    }
+pub fn get_clipboard_text(_: Map<String, Value>) -> anyhow::Result<String> {
+    // map errors because anyhows "Error" doesn't direct support box errors
+    let mut clipboard = ClipboardContext::new().map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
+    let contents = clipboard
+        .get_contents()
+        .map_err(|e| anyhow::anyhow!(e.to_string()))
+        .context("Failed to grab string contents of clipboard")?;
+
+    Ok(contents)
 }
 
 // returns a string representation of a base64 screenshot of the primary display
@@ -318,6 +320,6 @@ pub async fn get_screenshot(_: Map<String, Value>) -> anyhow::Result<String> {
     }
 }
 
-pub fn get_time(_: Map<String, Value>) -> String {
-    format!("{:#?}", Local::now())
+pub fn get_time(_: Map<String, Value>) -> anyhow::Result<String> {
+    Ok(format!("{:#?}", Local::now()))
 }
