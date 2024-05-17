@@ -1,15 +1,17 @@
+use crate::db::{Log, LogLevels};
 use crate::globals::{self, get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
 use crate::tools::*;
-use reqwest::Error;
-use std::time::Duration;
-use crossbeam::channel::Sender;
-use reqwest::header::TRANSFER_ENCODING;
-use opus::Decoder;
-use ogg::reading::async_api::PacketReader;
-use tokio_util::io::StreamReader;
 use cpal::SampleRate;
-use tokio_stream::StreamExt;
+use crossbeam::channel::Sender;
+use ogg::reading::async_api::PacketReader;
+use opus::Decoder;
+use reqwest::header::TRANSFER_ENCODING;
+use reqwest::Error;
 use serde_json::{Map, Value};
+use std::time::Duration;
+use tokio_stream::StreamExt;
+use tokio_util::io::StreamReader;
+use globals::get_auth_user_id;
 
 pub async fn run(user_message: String) -> String {
     let message = serde_json::json!({
@@ -19,18 +21,26 @@ pub async fn run(user_message: String) -> String {
 
     let _ = create_message(message, get_thread_id()).await;
 
-    let run_id: String = create_run(get_thread_id())
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Error occurred: {:?}", err);
-        });
+    let run_id: String = create_run(get_thread_id()).await.unwrap_or_else(|err| {
+        panic!("Error occurred: {:?}", err);
+    });
 
     let _ = run_and_wait(&run_id, get_thread_id()).await;
 
     let assistant_response = get_assistant_last_response(get_thread_id()).await.unwrap();
 
+    match Log::log(Log {
+        user_id: get_auth_user_id(),
+        log_level: LogLevels::Info,
+        message: "Successful Assistant Response!".to_string(),
+        source: Some("assistant.rs".to_string()),
+    }).await {
+        Ok(_) => {},
+        Err(err) => println!("Failed to send log: {}", err),
+    }
+
     assistant_response
-} 
+}
 
 pub async fn create_message_thread() -> Result<String, Error> {
     let response = get_reqwest_client()
@@ -46,7 +56,10 @@ pub async fn create_message_thread() -> Result<String, Error> {
     Ok(thread["id"].to_string())
 }
 
-pub async fn create_message(user_message: serde_json::Value, thread_id: String) -> Result<(), Error> {
+pub async fn create_message(
+    user_message: serde_json::Value,
+    thread_id: String,
+) -> Result<(), Error> {
     get_reqwest_client()
         .post(format!(
             "https://api.openai.com/v1/threads/{}/messages",
@@ -63,7 +76,7 @@ pub async fn create_message(user_message: serde_json::Value, thread_id: String) 
 }
 
 pub async fn create_run(thread_id: String) -> Result<String, Error> {
-    let n_messages_in_context = if globals::get_is_signed_in() { 5 }  else { 2 };
+    let n_messages_in_context = if globals::get_is_signed_in() { 5 } else { 2 };
 
     let data = serde_json::json!({
         "assistant_id": get_magnus_id(),
@@ -194,16 +207,24 @@ pub async fn get_assistant_last_response(thread_id: String) -> Result<String, Er
 
     let messages = response.json::<serde_json::Value>().await?;
 
-    let assistant_response = messages["data"][0]["content"][0]["text"]["value"].as_str().unwrap().to_string();
+    let assistant_response = messages["data"][0]["content"][0]["text"]["value"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     Ok(assistant_response)
 }
 
-pub async fn create_speech(assistant_message: String, audio_output_sender: Sender<Vec<i16>>, sample_rate: SampleRate, channels: u16) -> Result<(), Error> {
+pub async fn create_speech(
+    assistant_message: String,
+    audio_output_sender: Sender<Vec<i16>>,
+    sample_rate: SampleRate,
+    channels: u16,
+) -> Result<(), Error> {
     let channels: opus::Channels = match channels {
         1 => opus::Channels::Mono,
         2 => opus::Channels::Stereo,
-        _ => panic!()
+        _ => panic!(),
     };
     let mut opus_decoder = Decoder::new(sample_rate.0, channels).unwrap();
 
@@ -223,11 +244,10 @@ pub async fn create_speech(assistant_message: String, audio_output_sender: Sende
         .json(&data)
         .send()
         .await?;
-        
+
     let bytes_stream = response.bytes_stream();
-    let stream = bytes_stream.map(|res| {
-        res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
-    });
+    let stream = bytes_stream
+        .map(|res| res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())));
     let stream_reader = StreamReader::new(stream);
     let mut packet_reader = PacketReader::new(stream_reader);
 
@@ -238,9 +258,10 @@ pub async fn create_speech(assistant_message: String, audio_output_sender: Sende
                 let _ = opus_decoder.decode(&packet.data, &mut samples, false);
 
                 if samples.len() == 1920 {
-                    for half in samples.chunks(960) { // we receive the audio info in a vec of size 1920, audio ouput stream needs vecs of size 960, so we send the data in two halves
+                    for half in samples.chunks(960) {
+                        // we receive the audio info in a vec of size 1920, audio ouput stream needs vecs of size 960, so we send the data in two halves
                         match audio_output_sender.try_send(half.to_vec()) {
-                            Ok(_) => {},
+                            Ok(_) => {}
                             Err(e) => {
                                 if e.is_disconnected() {
                                     panic!("Audio output channel disconnected!")
@@ -249,8 +270,8 @@ pub async fn create_speech(assistant_message: String, audio_output_sender: Sende
                         }
                     }
                 }
-            },
-            Err(e) => println!("Error reading packet: {e:#?}")
+            }
+            Err(e) => println!("Error reading packet: {e:#?}"),
         }
     }
     Ok(())
@@ -266,7 +287,7 @@ async fn execute(tool: &str, args: Map<String, Value>) -> Result<String, Error> 
         "SCREENSHOT" => SCREENSHOT.execute(args).await,
         "TIME" => TIME.execute(args).await,
         "USER_COORDINATES" => USER_COORDINATES.execute(args).await,
-        _ => todo!()
+        _ => todo!(),
     };
 
     Ok(result)

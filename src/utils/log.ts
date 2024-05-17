@@ -14,7 +14,7 @@ type Log = {
 }
 
 // private function to convert log level enum because of serialization in rust
-function _convertLogLevel(loglevel: number) {
+export function _convertLogLevel(loglevel: number) {
     switch (loglevel) {
         case 0:
             return "Info"
@@ -27,7 +27,7 @@ function _convertLogLevel(loglevel: number) {
     }
 }
 
-function log(userId: String, logLevel: LogLevels, message: String, source: String | null = null) {
+export function log(userId: String, logLevel: LogLevels, message: String, source: String | null = null) {
 
     let magnusLog: Log = {
         user_id: userId,
@@ -38,5 +38,3 @@ function log(userId: String, logLevel: LogLevels, message: String, source: Strin
 
     invoke("create_log", { log: magnusLog })
 }
-
-export default log;

@@ -43,6 +43,11 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+async fn set_user_id(user_id: String) {
+    globals::set_auth_user_id(user_id);
+}
+
+#[tauri::command]
 async fn create_log(log: Log) {
     match Log::log(log).await {
     Ok(_) => {},
@@ -282,7 +287,8 @@ fn main() {
             get_auth_domain,
             set_is_signed_in,
             create_user,
-            create_log
+            create_log,
+            set_user_id
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

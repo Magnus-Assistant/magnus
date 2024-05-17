@@ -33,20 +33,16 @@ pub struct User {
     user_id: String,
     username: String,
     email: String,
-    created_at: String,
 }
 
 impl User {
     pub async fn add_user(user: User) -> Result<(), Box<dyn std::error::Error>> {
         let url: String = format!("{}/api/user", get_domain());
 
-        println!("{}", url);
-
         let user = serde_json::json!({
             "userId": user.user_id,
             "username": user.username,
-            "email": user.email,
-            "created_at": user.created_at
+            "email": user.email
         });
 
         // send request to create user.
@@ -62,10 +58,9 @@ impl User {
     }
 }
 
-
 // Creating and adding logs to our DB
 #[derive(serde::Serialize, serde::Deserialize)]
-enum LogLevels {
+pub enum LogLevels {
     Info = 0,
     Warning = 1,
     Error = 2,
@@ -73,19 +68,18 @@ enum LogLevels {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Log {
-    user_id: String,
-    log_level: String,
-    message: String,
-    source: Option<String>,
+    pub(crate) user_id: String,
+    pub(crate) log_level: LogLevels,
+    pub(crate) message: String,
+    pub(crate) source: Option<String>,
 }
 
 impl Log {
-    fn convert_log_level(level: &str) -> i32 {
+    fn convert_log_level(level: LogLevels) -> i32 {
         match level {
-            "Info" => 0,
-            "Warning" => 1,
-            "Error" => 2,
-            &_ => 3, // unknown
+            LogLevels::Info => 0,
+            LogLevels::Warning => 1,
+            LogLevels::Error => 2,
         }
     }
 
@@ -94,7 +88,7 @@ impl Log {
 
         let log = serde_json::json!({
             "userId": log.user_id,
-            "logLevel": Self::convert_log_level(&log.log_level), // convert here because of serialization weirdness
+            "logLevel": Self::convert_log_level(log.log_level), // convert here because of serialization weirdness
             "message": log.message,
             "source": log.source,
         });
