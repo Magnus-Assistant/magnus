@@ -1,3 +1,4 @@
+use anyhow::{self, Context};
 use std::env;
 
 use crate::globals::{get_auth_user_id, get_reqwest_client};
@@ -53,7 +54,7 @@ impl User {
             .json(&user)
             .send()
             .await?;
-
+        
         // if the result was something other than success of already exists then log
         if response.status().as_u16() != 200 && response.status().as_u16() != 409 {
             let _ = Log::log(Log {

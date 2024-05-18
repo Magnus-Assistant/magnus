@@ -1,6 +1,7 @@
 use crate::db::{Log, LogLevels};
 use crate::globals::{self, get_magnus_id, get_open_ai_key, get_reqwest_client, get_thread_id};
 use crate::tools::*;
+use anyhow::Context;
 use cpal::SampleRate;
 use crossbeam::channel::Sender;
 use globals::get_auth_user_id;
@@ -101,7 +102,7 @@ pub async fn create_run(thread_id: String) -> Result<String, Error> {
     Ok(run["id"].to_string().trim_matches('\"').to_string())
 }
 
-pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> {
+pub async fn run_and_wait(run_id: &str, thread_id: String) -> anyhow::Result<()> {
     loop {
         let response = get_reqwest_client()
             .get(format!(
@@ -142,9 +143,12 @@ pub async fn run_and_wait(run_id: &str, thread_id: String) -> Result<(), Error> 
                             serde_json::Map<String, serde_json::Value>,
                         >(arguments);
 
+                        // if we have args, use them
                         match arguments_object {
                             Ok(args) => {
-                                tool_output = execute(tool, args).await?;
+                                tool_output = execute(tool, args)
+                                    .await
+                                    .context("failed to execute tool")?;
                             }
                             Err(_) => {
                                 tool_output = "No arguments key found in tool call".to_string()
@@ -176,7 +180,7 @@ pub async fn submit_tool_outputs(
     run_id: &str,
     thread_id: String,
     tool_outputs: serde_json::Value,
-) -> Result<(), Error> {
+) -> anyhow::Result<()> {
     let _ = get_reqwest_client()
         .post(format!(
             "https://api.openai.com/v1/threads/{}/runs/{}/submit_tool_outputs",
@@ -187,8 +191,8 @@ pub async fn submit_tool_outputs(
         .header("OpenAI-Beta", "assistants=v2")
         .json(&tool_outputs)
         .send()
-        .await;
-
+        .await
+        .context("Failed to submit tool outputs");
     Ok(())
 }
 
@@ -275,7 +279,7 @@ pub async fn create_speech(
     Ok(())
 }
 
-async fn execute(tool: &str, args: Map<String, Value>) -> Result<String, Error> {
+async fn execute(tool: &str, args: Map<String, Value>) -> anyhow::Result<String> {
     println!("wants to use {} tool with args:\n{:#?}", tool, args);
 
     let result = match tool {
@@ -288,5 +292,5 @@ async fn execute(tool: &str, args: Map<String, Value>) -> Result<String, Error> 
         _ => todo!(),
     };
 
-    Ok(result)
+    return Ok(result.context("failed to execute tool with args")?);
 }
