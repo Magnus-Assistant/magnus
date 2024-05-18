@@ -1,6 +1,6 @@
-use std::env;
 use crate::globals::{get_auth_jwt, get_auth_user_id, get_reqwest_client};
 use lazy_static::lazy_static;
+use std::env;
 
 // dynamically choose the domain based on the env value "IS_PROD"
 lazy_static! {
@@ -43,16 +43,16 @@ impl User {
             "username": user.username,
             "email": user.email
         });
-      
-    // send request to create user.
-    // we are doing all input validation on the backend
-    let response = get_reqwest_client()
-        .post(url)
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("{} {}", "Bearer ", get_auth_jwt()))
-        .json(&user)
-        .send()
-        .await?;
+
+        // send request to create user.
+        // we are doing all input validation on the backend
+        let response = get_reqwest_client()
+            .post(url)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("{} {}", "Bearer ", get_auth_jwt()))
+            .json(&user)
+            .send()
+            .await?;
 
         // if the result was something other than success of already exists then log
         if response.status().as_u16() != 200 && response.status().as_u16() != 409 {

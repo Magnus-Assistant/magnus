@@ -93,9 +93,9 @@ function App() {
   const hasCreated = useRef(false);
   const initialLogin = () => {
     if (!hasCreated.current && jwt) {
-    invoke("set_jwt", { jwt: jwt }) // set jwt on backend
-    create_user(user?.given_name ? user?.given_name : user?.nickname, user?.email)
-    hasCreated.current = true
+      invoke("set_jwt", { jwt: jwt }) // set jwt on backend
+      create_user(user?.given_name ? user?.given_name : user?.nickname, user?.email)
+      hasCreated.current = true
     }
   }
 
