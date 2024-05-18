@@ -64,7 +64,7 @@ async fn create_log(log: Log) {
 
 #[tauri::command]
 async fn create_user(user: User) {
-    match add_user(user).await {
+    match User::add_user(user).await {
         Ok(_) => {},
         Err(err) => {
             println!("Error creating user: {}", err)

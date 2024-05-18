@@ -51,7 +51,7 @@ lazy_static! {
             Err(_) => { println!("Could not fetch OpenAI API key!"); return "".to_string() }
         }
     };
-    
+
     static ref IPAPI_KEY: String = {
         match env::var("IPAPI_KEY") {
             Ok(value) => value,

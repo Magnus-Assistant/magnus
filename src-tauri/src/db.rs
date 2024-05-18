@@ -1,5 +1,4 @@
 use std::env;
-
 use crate::globals::{get_auth_jwt, get_auth_user_id, get_reqwest_client};
 use lazy_static::lazy_static;
 
@@ -12,7 +11,7 @@ lazy_static! {
                 if value == "true" {
                     "https://magnusbackend.azurewebsites.net".to_string()
                 } else {
-                    "http://localhost:3000/api".to_string()
+                    "http://localhost:3000".to_string()
                 }
             }
             Err(_) => {
@@ -27,23 +26,24 @@ pub fn get_domain() -> &'static str {
     &DOMAIN.as_str()
 }
 
+// Creating and adding users to our DB
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct User {
     user_id: String,
     username: String,
     email: String,
-    created_at: String,
 }
 
-pub async fn add_user(user: User) -> Result<(), Box<dyn std::error::Error>> {
-    let url: String = format!("{}/user", get_domain());
+impl User {
+    pub async fn add_user(user: User) -> Result<(), Box<dyn std::error::Error>> {
+        let url: String = format!("{}/api/user", get_domain());
 
-    let user = serde_json::json!({
-        "userId": user.user_id,
-        "username": user.username,
-        "email": user.email
-    });
-
+        let user = serde_json::json!({
+            "userId": user.user_id,
+            "username": user.username,
+            "email": user.email
+        });
+      
     // send request to create user.
     // we are doing all input validation on the backend
     let response = get_reqwest_client()
@@ -54,16 +54,23 @@ pub async fn add_user(user: User) -> Result<(), Box<dyn std::error::Error>> {
         .send()
         .await?;
 
-    // send request to create user.
-    // we are doing all input validation on the backend
-    let response = get_reqwest_client()
-        .post(url)
-        .header("Content-Type", "application/json")
-        .json(&user)
-        .send()
-        .await?;
+        // if the result was something other than success of already exists then log
+        if response.status().as_u16() != 200 && response.status().as_u16() != 409 {
+            let _ = Log::log(Log {
+                user_id: get_auth_user_id(),
+                log_level: LogLevels::Info,
+                message: format!(
+                    "Failed to create user. Status: {}, Error: {:?}",
+                    response.status().as_u16(),
+                    response.text().await
+                ),
+                source: Some("assistant.rs".to_string()),
+            })
+            .await;
+        }
 
-    Ok(())
+        Ok(())
+    }
 }
 
 // Creating and adding logs to our DB

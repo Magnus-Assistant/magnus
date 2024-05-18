@@ -33,18 +33,8 @@ function App() {
   // also if something were to happen where they are no longer auth'd the backend would be informed as well
   useEffect(() => {
     if (isAuthenticated) {
-      // add the user to the DB if they don't already exist
       invoke("set_user_id", { userId: generateIdHash(user?.email) })
       invoke("set_is_signed_in", { isSignedIn: true })
-
-      // create user on our backend if it doesnt exist
-      invoke("create_user", {
-        user: {
-          user_id: generateIdHash(user?.email),
-          username: user?.given_name ? user?.given_name : user?.nickname,
-          email: user?.email,
-        },
-      });
       console.log("We are using the authenticated mode")
     } else {
 
