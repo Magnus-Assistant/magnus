@@ -40,7 +40,7 @@ impl User {
         let url: String = format!("{}/api/user", get_domain());
 
         let user = serde_json::json!({
-            // "userId": user.user_id,
+            "userId": user.user_id,
             "username": user.username,
             "email": user.email
         });
