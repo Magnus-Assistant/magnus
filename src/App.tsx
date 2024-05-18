@@ -9,7 +9,7 @@ import SendIcon from "./assets/SendIcon.svg"
 import LoginForm from "./components/loginForm/loginForm";
 import { useAuth0 } from "@auth0/auth0-react";
 import CircularLoading from "./components/circularLoading/circularLoading";
-import * as c from 'crypto-js';
+import { create_user, generateIdHash } from "./utils/user";
 
 type Payload = {
   message: string;
@@ -22,47 +22,30 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPreview, setShowPreview] = useState(false);
+  const [jwt, setJwt] = useState<String | undefined>(undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { isLoading, isAuthenticated, error, user, getIdTokenClaims } = useAuth0();
-
-  let jwt = getIdTokenClaims().then(token => {
-    console.log(token?.__raw)
-    // invoke and save to a global variable (wrapped in an Option), for every request to the backend send the JWT as the Authenitcation header value example: Bearer *JWT*
-  })
-
-  function generateHash(input: string | undefined): string {
-    
-    // if we have an value, hash it
-    if (input) {
-      const hash = c.SHA256(input);
-      const hashedString = hash.toString(c.enc.Hex);
-      return hashedString;
-    }
-    // if it is undefined return an empty string and the backend will handle the input validation
-    return ""
-  }
 
   // set the auth status on the backend
   // can return false for isAuthenticated at first so its safer to run this each time it changes
   // also if something were to happen where they are no longer auth'd the backend would be informed as well
   useEffect(() => {
     if (isAuthenticated) {
-      let created = new Date();
+      // add the user to the DB if they don't already exist
+      invoke("set_user_id", { userId: generateIdHash(user?.email) })
       invoke("set_is_signed_in", { isSignedIn: true })
 
       // create user on our backend if it doesnt exist
       invoke("create_user", {
         user: {
-          user_id: generateHash(user?.email),
+          user_id: generateIdHash(user?.email),
           username: user?.given_name ? user?.given_name : user?.nickname,
           email: user?.email,
-          created_at: created.toLocaleString()
         },
       });
       console.log("We are using the authenticated mode")
-
     } else {
 
       invoke("set_is_signed_in", { isSignedIn: false })
@@ -113,6 +96,16 @@ function App() {
           }
         }
       })
+    }
+  }
+
+  // only run this flow once so that we down spam the db
+  const hasCreated = useRef(false);
+  const initialLogin = () => {
+    if (!hasCreated.current && jwt) {
+    invoke("set_jwt", { jwt: jwt }) // set jwt on backend
+    create_user(user?.given_name ? user?.given_name : user?.nickname, user?.email)
+    hasCreated.current = true
     }
   }
 
@@ -201,13 +194,25 @@ function App() {
     scrollToBottom()
   }, [messages])
 
+  // obtain the users jwt
+  useEffect(() => {
+    setTimeout(() => {
+      const fetchJwt = async () => {
+        await getIdTokenClaims().then((token) => {
+          setJwt(token?.__raw);
+        });
+      };
+      fetchJwt();
+    }, 1000) // wait 1 second so that we have a chance auth correctly
+  }, []);
+
   if (!isAuthenticated && !isLoading && !showPreview) {
     return (
       <LoginForm onPreviewClick={() => setShowPreview(true)}></LoginForm>
     )
   }
 
-  if (isLoading) {
+  if (!jwt && !showPreview) {
     return (
       <div className="container">
         <CircularLoading size="large" />
@@ -221,7 +226,9 @@ function App() {
     )
   }
 
-  if (!error && !isLoading) {
+  if (jwt || showPreview) {
+    // do this only once
+    initialLogin()
     return (
       <div className="container">
         <ChatFrame initialMessages={messages} loading={loading} isSignedIn={isAuthenticated}></ChatFrame>
