@@ -47,7 +47,7 @@ jobs:
           echo "AUTH_DOMAIN=${{ secrets.AUTH_DOMAIN }}" >> ./src-tauri/.env
           echo "AUTH_CLIENT_ID=${{ secrets.AUTH_CLIENT_ID }}" >> ./src-tauri/.env
           echo "IS_PROD=true" >> ./src-tauri/.env
-          shell: bash
+        shell: bash
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
