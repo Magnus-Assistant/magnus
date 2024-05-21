@@ -35,3 +35,14 @@ Releases can be found [here](https://github.com/Magnus-Assistant/magnus/releases
     * The .msi installer is recommended for Windows
 * **Apple Silicon**
     * The .dmg is recommended for Apple Silicon
+
+Because of the **Safety** section above it is possible that **MacOS** will "quarantine" the "Magnus.app" file when installed into the Applications folder. When attempting to open Magnus after installation you may be prompted with something like:
+
+```'magnus' is damaged and can’t be opened. You should move it to the Trash.```
+
+The application is not actually damaged, but rather quarantined by the system because its a zip file downloaded from the internet. To resolve this issue and continue using Magnus as normal, a simple unix command can be used to remove the quarantine attribute. This command will only work if Magnus is located in the Applications folder. Changes to the path may be needed if it's stored somewhere else.
+
+```xattr -d com.apple.quarantine /Applications/Magnus.app/```
+
+To run the command simply open the "Terminal" application, paste in the command, and press enter. After is successfully runs, you should be able to open and use Magnus.
+
