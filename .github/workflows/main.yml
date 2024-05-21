@@ -44,6 +44,9 @@ jobs:
           echo "OPENAI_KEY=${{ secrets.OPENAI_KEY }}" >> ./src-tauri/.env
           echo "OPENCAGE_KEY=${{ secrets.OPENCAGE_KEY }}" >> ./src-tauri/.env
           echo "WEATHER_API_USER_AGENT=${{ secrets.WEATHER_API_USER_AGENT }}" >> ./src-tauri/.env
+          echo "AUTH_DOMAIN=${{ secrets.AUTH_DOMAIN }}" >> ./src-tauri/.env
+          echo "AUTH_CLIENT_ID=${{ secrets.AUTH_CLIENT_ID }}" >> ./src-tauri/.env
+          echo "IS_PROD=true" >> ./src-tauri/.env
         shell: bash
 
       - name: Build the app
@@ -52,7 +55,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }} # This only works if your workflow triggers on new tags.
-          releaseName: ' magnus_v__VERSION__' # tauri-action replaces \_\_VERSION\_\_ with the app version.
+          releaseName: 'Magnus_v${{ steps.extract_version.outputs.version }}' # Injecting version properly
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: false
           prerelease: false
