@@ -1,7 +1,6 @@
-use std::env;
-
-use crate::globals::{get_auth_user_id, get_reqwest_client};
+use crate::globals::{get_auth_jwt, get_auth_user_id, get_reqwest_client};
 use lazy_static::lazy_static;
+use std::env;
 
 // dynamically choose the domain based on the env value "IS_PROD"
 lazy_static! {
@@ -50,6 +49,7 @@ impl User {
         let response = get_reqwest_client()
             .post(url)
             .header("Content-Type", "application/json")
+            .header("Authorization", format!("{} {}", "Bearer ", get_auth_jwt()))
             .json(&user)
             .send()
             .await?;
@@ -113,6 +113,7 @@ impl Log {
         let _ = get_reqwest_client()
             .post(url)
             .header("Content-Type", "application/json")
+            .header("Authorization", format!("{} {}", "Bearer ", get_auth_jwt()))
             .json(&log)
             .send()
             .await?;

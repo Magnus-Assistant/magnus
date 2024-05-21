@@ -43,6 +43,11 @@ async fn create_message_thread() -> String {
 }
 
 #[tauri::command]
+async fn set_jwt(jwt: String) {
+    globals::set_auth_jwt(jwt);
+}
+
+#[tauri::command]
 async fn set_user_id(user_id: String) {
     globals::set_auth_user_id(user_id);
 }
@@ -50,17 +55,17 @@ async fn set_user_id(user_id: String) {
 #[tauri::command]
 async fn create_log(log: Log) {
     match Log::log(log).await {
-    Ok(_) => {},
-    Err(err) => {
-        println!("Error creating log: {}", err)
-    },
+        Ok(_) => {}
+        Err(err) => {
+            println!("Error creating log: {}", err)
+        }
     }
 }
 
 #[tauri::command]
 async fn create_user(user: User) {
     match User::add_user(user).await {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(err) => {
             println!("Error creating user: {}", err)
         }
@@ -288,7 +293,8 @@ fn main() {
             set_is_signed_in,
             create_user,
             create_log,
-            set_user_id
+            set_user_id,
+            set_jwt
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -90,6 +90,8 @@ lazy_static! {
     static ref IS_SIGNED_IN: Mutex<bool> = Mutex::new(false);
 
     static ref AUTH_USER_ID: Mutex<String> = Mutex::new("".to_string());
+
+    static ref AUTH_JWT: Mutex<String> = Mutex::new("".to_string());
 }
 
 pub fn get_reqwest_client() -> &'static Client {
@@ -150,4 +152,12 @@ pub fn get_auth_user_id() -> String {
 
 pub fn set_auth_user_id(user_id: String) {
     *AUTH_USER_ID.lock().unwrap() = user_id;
+}
+
+pub fn get_auth_jwt() -> String {
+    AUTH_JWT.lock().unwrap().clone()
+}
+
+pub fn set_auth_jwt(jwt: String) {
+    *AUTH_JWT.lock().unwrap() = jwt;
 }
