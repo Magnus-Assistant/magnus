@@ -51,7 +51,7 @@ lazy_static! {
             Err(_) => { println!("Could not fetch OpenAI API key!"); return "".to_string() }
         }
     };
-    
+
     static ref IPAPI_KEY: String = {
         match env::var("IPAPI_KEY") {
             Ok(value) => value,
@@ -88,6 +88,10 @@ lazy_static! {
     };
 
     static ref IS_SIGNED_IN: Mutex<bool> = Mutex::new(false);
+
+    static ref AUTH_USER_ID: Mutex<String> = Mutex::new("".to_string());
+
+    static ref AUTH_JWT: Mutex<String> = Mutex::new("".to_string());
 }
 
 pub fn get_reqwest_client() -> &'static Client {
@@ -140,4 +144,20 @@ pub fn get_is_signed_in() -> bool {
 
 pub fn set_is_signed_in(is_signed_in: bool) {
     *IS_SIGNED_IN.lock().unwrap() = is_signed_in;
+}
+
+pub fn get_auth_user_id() -> String {
+    AUTH_USER_ID.lock().unwrap().clone()
+}
+
+pub fn set_auth_user_id(user_id: String) {
+    *AUTH_USER_ID.lock().unwrap() = user_id;
+}
+
+pub fn get_auth_jwt() -> String {
+    AUTH_JWT.lock().unwrap().clone()
+}
+
+pub fn set_auth_jwt(jwt: String) {
+    *AUTH_JWT.lock().unwrap() = jwt;
 }

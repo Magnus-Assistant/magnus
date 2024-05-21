@@ -9,6 +9,7 @@ import SendIcon from "./assets/SendIcon.svg"
 import LoginForm from "./components/loginForm/loginForm";
 import { useAuth0 } from "@auth0/auth0-react";
 import CircularLoading from "./components/circularLoading/circularLoading";
+import { create_user, generateIdHash } from "./utils/user";
 
 type Payload = {
   message: string;
@@ -21,19 +22,22 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPreview, setShowPreview] = useState(false);
+  const [jwt, setJwt] = useState<String | undefined>(undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { isLoading, isAuthenticated, error } = useAuth0();
+  const { isLoading, isAuthenticated, error, user, getIdTokenClaims } = useAuth0();
 
   // set the auth status on the backend
   // can return false for isAuthenticated at first so its safer to run this each time it changes
   // also if something were to happen where they are no longer auth'd the backend would be informed as well
   useEffect(() => {
     if (isAuthenticated) {
+      invoke("set_user_id", { userId: generateIdHash(user?.email) })
       invoke("set_is_signed_in", { isSignedIn: true })
       console.log("We are using the authenticated mode")
     } else {
+
       invoke("set_is_signed_in", { isSignedIn: false })
       console.log("We are using the unauthenticated preview")
     }
@@ -74,7 +78,7 @@ function App() {
             //use the microphone
             runConversationFlow(true);
             console.log("Collecting Audio")
-          } 
+          }
           else {
             setShouldMic(true)
             button.style.filter = "invert(0%)"
@@ -82,6 +86,16 @@ function App() {
           }
         }
       })
+    }
+  }
+
+  // only run this flow once so that we down spam the db
+  const hasCreated = useRef(false);
+  const initialLogin = () => {
+    if (!hasCreated.current && jwt) {
+      invoke("set_jwt", { jwt: jwt }) // set jwt on backend
+      create_user(user?.given_name ? user?.given_name : user?.nickname, user?.email)
+      hasCreated.current = true
     }
   }
 
@@ -102,7 +116,7 @@ function App() {
     if (textBox && canToggle) {
       textareaRef.current?.focus()
     }
-    
+
     let micButton = document.getElementById("micButton") as HTMLButtonElement
     micButton ? micButton.disabled = !canToggle : {}
     canToggle ? micButton.style.cursor = 'pointer' : micButton.style.cursor = 'default'
@@ -170,13 +184,25 @@ function App() {
     scrollToBottom()
   }, [messages])
 
+  // obtain the users jwt
+  useEffect(() => {
+    setTimeout(() => {
+      const fetchJwt = async () => {
+        await getIdTokenClaims().then((token) => {
+          setJwt(token?.__raw);
+        });
+      };
+      fetchJwt();
+    }, 1000) // wait 1 second so that we have a chance auth correctly
+  }, []);
+
   if (!isAuthenticated && !isLoading && !showPreview) {
     return (
       <LoginForm onPreviewClick={() => setShowPreview(true)}></LoginForm>
     )
   }
 
-  if (isLoading) {
+  if (!jwt && !showPreview) {
     return (
       <div className="container">
         <CircularLoading size="large" />
@@ -190,7 +216,9 @@ function App() {
     )
   }
 
-  if (!error && !isLoading) {
+  if (jwt || showPreview) {
+    // do this only once
+    initialLogin()
     return (
       <div className="container">
         <ChatFrame initialMessages={messages} loading={loading} isSignedIn={isAuthenticated}></ChatFrame>
